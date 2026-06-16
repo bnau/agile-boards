@@ -1,0 +1,29 @@
+.agile-boards-container {
+	padding: var(--size-4-4);
+}
+
+.agile-boards-columns {
+	display: flex;
+	gap: var(--size-4-4);
+	align-items: flex-start;
+}
+
+.agile-boards-column {
+	flex: 1;
+	min-width: 200px;
+	background-color: var(--background-secondary);
+	border-radius: var(--radius-m);
+	padding: var(--size-4-2);
+}
+
+.agile-boards-column h3 {
+	margin-top: 0;
+}
+
+.agile-boards-card {
+	background-color: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: var(--size-4-2);
+	margin-top: var(--size-4-2);
+}

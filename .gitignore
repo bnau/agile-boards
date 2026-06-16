@@ -1,0 +1,8 @@
+/.idea/
+
+# Dependencies
+node_modules/
+
+# Build output (distribution artifacts are generated, not committed)
+main.js
+*.js.map

@@ -1,0 +1,9 @@
+{
+	"id": "agile-boards",
+	"name": "Agile Boards",
+	"version": "0.1.0",
+	"minAppVersion": "1.5.0",
+	"description": "Agile/Kanban boards backed by your Obsidian vault notes.",
+	"author": "Bertrand Nau",
+	"isDesktopOnly": false
+}

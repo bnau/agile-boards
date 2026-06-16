@@ -1,0 +1,31 @@
+{
+	"name": "agile-boards",
+	"version": "0.1.0",
+	"description": "Agile/Kanban boards backed by your Obsidian vault notes.",
+	"main": "main.js",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+	},
+	"keywords": [
+		"obsidian",
+		"plugin",
+		"kanban",
+		"agile"
+	],
+	"author": "Bertrand Nau",
+	"license": "MIT",
+	"devDependencies": {
+		"@types/node": "^20.12.7",
+		"@types/react": "^18.3.3",
+		"@types/react-dom": "^18.3.0",
+		"builtin-modules": "^3.3.0",
+		"esbuild": "^0.21.5",
+		"obsidian": "latest",
+		"typescript": "^5.4.5"
+	},
+	"dependencies": {
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1"
+	}
+}

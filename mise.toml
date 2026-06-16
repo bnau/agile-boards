@@ -1,0 +1,6 @@
+[tools]
+node = "latest"
+
+"pipx:git+https://github.com/github/spec-kit.git" = "latest"
+"claude" = "latest"
+uv = "latest"
