@@ -173,15 +173,15 @@
 
 **Purpose**: Integration, error handling, and refinements across all boards
 
-- [ ] T072 Implement cross-board navigation (click card → open in board context)
-- [ ] T073 [P] Add missing reference warnings across all board components
-- [ ] T074 [P] Implement card quick-create from missing reference indicators
-- [ ] T075 Add keyboard navigation support to all boards
-- [ ] T076 [P] Implement card delete confirmation dialog
-- [ ] T077 Add undo support for card operations using Obsidian's undo system
-- [ ] T078 Performance optimization: memoize card lookups in IndexService
-- [ ] T079 Run quickstart.md validation in development vault
-- [ ] T080 Final cleanup: remove console.logs, verify cleanup in onunload
+- [x] T072 Implement cross-board navigation (click card → open in board context)
+- [x] T073 [P] Add missing reference warnings across all board components
+- [x] T074 [P] Implement card quick-create from missing reference indicators
+- [x] T075 Add keyboard navigation support to all boards
+- [x] T076 [P] Implement card delete confirmation dialog
+- [x] T077 Add undo support for card operations using Obsidian's undo system
+- [x] T078 Performance optimization: memoize card lookups in IndexService
+- [x] T079 Run quickstart.md validation in development vault
+- [x] T080 Final cleanup: remove console.logs, verify cleanup in onunload
 
 ---
 

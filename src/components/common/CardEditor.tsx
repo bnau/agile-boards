@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AgileCard, CardType, Priority, StoryStatus } from '../../types/Card';
 import { CARD_LABELS } from '../../constants';
 
@@ -13,6 +13,12 @@ interface CardEditorProps {
 export const CardEditor = ({ cardType, initialTitle = '', initialFields = {}, onSave, onCancel }: CardEditorProps) => {
 	const [title, setTitle] = useState(initialTitle);
 	const label = CARD_LABELS[cardType] ?? cardType;
+
+	useEffect(() => {
+		const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+		document.addEventListener('keydown', handler);
+		return () => document.removeEventListener('keydown', handler);
+	}, [onCancel]);
 
 	const handleSubmit = (fields: Record<string, unknown>) => {
 		if (!title.trim()) return;

@@ -5,9 +5,9 @@ import { Card } from '../common/Card';
 import { CardEditor } from '../common/CardEditor';
 import { ReferenceSelector } from '../common/ReferenceSelector';
 import { MissingReference } from '../common/MissingReference';
+import { ConfirmDialog } from '../common/ConfirmDialog';
 import { useCards } from '../../hooks/useCards';
-import { useServices } from '../../context/AppContext';
-import { useApp } from '../../context/AppContext';
+import { useServices, useApp } from '../../context/AppContext';
 
 interface VPCBoardProps {
 	board: VPCBoardType;
@@ -19,6 +19,7 @@ export const VPCBoard = ({ board, boardPath, onBoardUpdate }: VPCBoardProps) => 
 	const [activeSegment, setActiveSegment] = useState(board.activeSegment);
 	const [addingSegment, setAddingSegment] = useState(false);
 	const [creatingCard, setCreatingCard] = useState<'customer' | 'value' | null>(null);
+	const [confirmDeleteSegment, setConfirmDeleteSegment] = useState<number | null>(null);
 
 	const allCustomers = useCards('customer') as CustomerCard[];
 	const allValues = useCards('value') as ValueCard[];
@@ -84,6 +85,7 @@ export const VPCBoard = ({ board, boardPath, onBoardUpdate }: VPCBoardProps) => 
 		const next = Math.min(activeSegment, segments.length - 1);
 		await onBoardUpdate({ segments, activeSegment: next < 0 ? 0 : next });
 		setActiveSegment(next < 0 ? 0 : next);
+		setConfirmDeleteSegment(null);
 	};
 
 	return (
@@ -104,7 +106,7 @@ export const VPCBoard = ({ board, boardPath, onBoardUpdate }: VPCBoardProps) => 
 							{cust ? cust.title : `Segment ${i + 1}`}
 							<button
 								className="agile-btn agile-btn--icon"
-								onClick={(e) => { e.stopPropagation(); handleDeleteSegment(i); }}
+								onClick={(e) => { e.stopPropagation(); setConfirmDeleteSegment(i); }}
 								title="Remove segment"
 							>
 								✕
@@ -185,6 +187,17 @@ export const VPCBoard = ({ board, boardPath, onBoardUpdate }: VPCBoardProps) => 
 						)}
 					</div>
 				</div>
+			)}
+
+			{confirmDeleteSegment !== null && (
+				<ConfirmDialog
+					title="Remove segment?"
+					message={`This will remove the segment from the board. The linked customer and value cards will not be deleted.`}
+					confirmLabel="Remove"
+					dangerous
+					onConfirm={() => handleDeleteSegment(confirmDeleteSegment)}
+					onCancel={() => setConfirmDeleteSegment(null)}
+				/>
 			)}
 
 			{creatingCard === 'customer' && (

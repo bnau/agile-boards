@@ -8,6 +8,8 @@ export class IndexService {
 	private byType: Map<CardType, AgileCard[]> = new Map();
 	private byPath: Map<string, AgileCard> = new Map();
 	private listeners: Set<ChangeListener> = new Set();
+	private version = 0;
+	private typeCache: Map<CardType, { version: number; cards: AgileCard[] }> = new Map();
 
 	constructor(private app: App, private cardService: CardService) {}
 
@@ -41,7 +43,11 @@ export class IndexService {
 	}
 
 	getCardsByType(type: CardType): AgileCard[] {
-		return this.byType.get(type) ?? [];
+		const cached = this.typeCache.get(type);
+		if (cached && cached.version === this.version) return cached.cards;
+		const cards = this.byType.get(type) ?? [];
+		this.typeCache.set(type, { version: this.version, cards });
+		return cards;
 	}
 
 	getCardByPath(path: string): AgileCard | undefined {
@@ -126,6 +132,7 @@ export class IndexService {
 	}
 
 	private notify(): void {
+		this.version++;
 		this.listeners.forEach((l) => l());
 	}
 }

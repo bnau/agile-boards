@@ -1,7 +1,6 @@
-import { Plugin, WorkspaceLeaf, TFile } from 'obsidian';
+import { Plugin, TFile } from 'obsidian';
 import {
 	VIEW_TYPE_VPC, VIEW_TYPE_LEAN, VIEW_TYPE_IMPACT, VIEW_TYPE_STORY, VIEW_TYPE_ROADMAP,
-	BOARD_FOLDER,
 } from './constants';
 import { PluginServices } from './context/AppContext';
 import { CardService } from './services/CardService';
@@ -27,16 +26,12 @@ export default class AgileBoardsPlugin extends Plugin {
 		this.services = { cardService, indexService, referenceService, boardService };
 		indexService.initialize();
 
-		this.registerView(VIEW_TYPE_VPC, (leaf) =>
-			new ValuePropositionView({ leaf, services: this.services, boardPath: '' }));
-		this.registerView(VIEW_TYPE_LEAN, (leaf) =>
-			new LeanCanvasView({ leaf, services: this.services, boardPath: '' }));
-		this.registerView(VIEW_TYPE_IMPACT, (leaf) =>
-			new ImpactMapView({ leaf, services: this.services, boardPath: '' }));
-		this.registerView(VIEW_TYPE_STORY, (leaf) =>
-			new StoryMapView({ leaf, services: this.services, boardPath: '' }));
-		this.registerView(VIEW_TYPE_ROADMAP, (leaf) =>
-			new RoadmapView({ leaf, services: this.services, boardPath: '' }));
+		// Register views — boardPath is set later via setState when opening a board
+		this.registerView(VIEW_TYPE_VPC, (leaf) => new ValuePropositionView(leaf, this.services));
+		this.registerView(VIEW_TYPE_LEAN, (leaf) => new LeanCanvasView(leaf, this.services));
+		this.registerView(VIEW_TYPE_IMPACT, (leaf) => new ImpactMapView(leaf, this.services));
+		this.registerView(VIEW_TYPE_STORY, (leaf) => new StoryMapView(leaf, this.services));
+		this.registerView(VIEW_TYPE_ROADMAP, (leaf) => new RoadmapView(leaf, this.services));
 
 		this.addRibbonIcon('layout-grid', 'Open agile board', () => {
 			this.openBoardPicker();
@@ -78,61 +73,43 @@ export default class AgileBoardsPlugin extends Plugin {
 	}
 
 	private async createAndOpenBoard(type: BoardType, defaultTitle: string): Promise<void> {
-		const { boardService } = this.services;
-		const file = await boardService.createBoard(type, defaultTitle, { boardType: type });
+		const file = await this.services.boardService.createBoard(type, defaultTitle, { boardType: type });
 		await this.openBoardFile(file);
 	}
 
-	private async openBoardFile(file: TFile): Promise<void> {
+	async openBoardFile(file: TFile): Promise<void> {
 		const board = this.services.boardService.parseBoard(file);
 		if (!board) return;
 
-		const viewType = {
-			'value-proposition-canvas': VIEW_TYPE_VPC,
-			'lean-canvas': VIEW_TYPE_LEAN,
-			'impact-map': VIEW_TYPE_IMPACT,
-			'story-map': VIEW_TYPE_STORY,
-			'roadmap': VIEW_TYPE_ROADMAP,
-		}[board.boardType];
-
+		const viewType = VIEW_TYPE_MAP[board.boardType];
 		if (!viewType) return;
 
 		const leaf = this.app.workspace.getLeaf('tab');
-
-		// Create a view with the board path set
-		const view = (() => {
-			const services = this.services;
-			const boardPath = file.path;
-			switch (viewType) {
-				case VIEW_TYPE_VPC: return new ValuePropositionView({ leaf, services, boardPath });
-				case VIEW_TYPE_LEAN: return new LeanCanvasView({ leaf, services, boardPath });
-				case VIEW_TYPE_IMPACT: return new ImpactMapView({ leaf, services, boardPath });
-				case VIEW_TYPE_STORY: return new StoryMapView({ leaf, services, boardPath });
-				case VIEW_TYPE_ROADMAP: return new RoadmapView({ leaf, services, boardPath });
-				default: return null;
-			}
-		})();
-
-		if (!view) return;
-
-		await leaf.open(view);
+		await leaf.setViewState({ type: viewType, state: { boardPath: file.path }, active: true });
 		this.app.workspace.revealLeaf(leaf);
 	}
 
 	private openBoardPicker(): void {
-		const boards = this.services.boardService.getBoardsOfType('value-proposition-canvas')
-			.concat(this.services.boardService.getBoardsOfType('lean-canvas'))
-			.concat(this.services.boardService.getBoardsOfType('impact-map'))
-			.concat(this.services.boardService.getBoardsOfType('story-map'))
-			.concat(this.services.boardService.getBoardsOfType('roadmap'));
+		const boardTypes: BoardType[] = [
+			'value-proposition-canvas', 'lean-canvas', 'impact-map', 'story-map', 'roadmap',
+		];
+		const boards = boardTypes.flatMap((t) => this.services.boardService.getBoardsOfType(t));
 
 		if (boards.length === 0) {
-			this.createAndOpenBoard('value-proposition-canvas', 'My Value Proposition Canvas');
+			this.createAndOpenBoard('value-proposition-canvas', 'Value Proposition Canvas');
 			return;
 		}
 
 		// Open the most recently modified board
-		const sorted = boards.sort((a, b) => b.stat.mtime - a.stat.mtime);
+		const sorted = [...boards].sort((a, b) => b.stat.mtime - a.stat.mtime);
 		this.openBoardFile(sorted[0]);
 	}
 }
+
+const VIEW_TYPE_MAP: Partial<Record<BoardType, string>> = {
+	'value-proposition-canvas': VIEW_TYPE_VPC,
+	'lean-canvas': VIEW_TYPE_LEAN,
+	'impact-map': VIEW_TYPE_IMPACT,
+	'story-map': VIEW_TYPE_STORY,
+	'roadmap': VIEW_TYPE_ROADMAP,
+};

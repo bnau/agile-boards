@@ -55,6 +55,48 @@ export class BoardService {
 		});
 	}
 
+	getAllBoards(): TFile[] {
+		return this.app.vault.getFiles().filter((f) => {
+			const cache = this.app.metadataCache.getFileCache(f);
+			const fm = cache?.frontmatter as FrontmatterRecord | undefined;
+			return fm?.['agile-type'] === 'board';
+		});
+	}
+
+	/** Find all boards that reference a given card path (by wikilink or path). */
+	findBoardsReferencingCard(cardPath: string): Array<{ file: TFile; board: AgileBoard }> {
+		const results: Array<{ file: TFile; board: AgileBoard }> = [];
+		const cardBasename = cardPath.split('/').pop()?.replace(/\.md$/, '') ?? '';
+
+		for (const file of this.getAllBoards()) {
+			const board = this.parseBoard(file);
+			if (!board) continue;
+			const refs = this.extractBoardRefs(board);
+			const references = refs.some(
+				(r) => r === cardPath || r === `[[${cardBasename}]]` || r.includes(cardBasename)
+			);
+			if (references) results.push({ file, board });
+		}
+		return results;
+	}
+
+	private extractBoardRefs(board: AgileBoard): string[] {
+		switch (board.boardType) {
+			case 'value-proposition-canvas':
+				return board.segments.flatMap((s) => [s.customer, s.value]);
+			case 'lean-canvas':
+				return Object.values(board.sections).flat() as string[];
+			case 'impact-map':
+				return [board.goal];
+			case 'story-map':
+				return [...board.backbone, ...board.releases.map((r) => r.mmf)];
+			case 'roadmap':
+				return board.releases;
+			default:
+				return [];
+		}
+	}
+
 	private frontmatterToBoard(path: string, fm: FrontmatterRecord): AgileBoard | null {
 		const base = {
 			boardType: fm['board-type'] as BoardType,
