@@ -1,46 +1,138 @@
-import { Plugin, WorkspaceLeaf } from 'obsidian';
-import { BoardView, VIEW_TYPE_BOARD } from './BoardView';
+import { Plugin, WorkspaceLeaf, TFile } from 'obsidian';
+import {
+	VIEW_TYPE_VPC, VIEW_TYPE_LEAN, VIEW_TYPE_IMPACT, VIEW_TYPE_STORY, VIEW_TYPE_ROADMAP,
+	BOARD_FOLDER,
+} from './constants';
+import { PluginServices } from './context/AppContext';
+import { CardService } from './services/CardService';
+import { IndexService } from './services/IndexService';
+import { ReferenceService } from './services/ReferenceService';
+import { BoardService } from './services/BoardService';
+import { ValuePropositionView } from './views/ValuePropositionView';
+import { LeanCanvasView } from './views/LeanCanvasView';
+import { ImpactMapView } from './views/ImpactMapView';
+import { StoryMapView } from './views/StoryMapView';
+import { RoadmapView } from './views/RoadmapView';
+import { BoardType } from './types/Board';
 
 export default class AgileBoardsPlugin extends Plugin {
-	async onload() {
-		// Register the board view. Obsidian tears registered views down on unload.
-		this.registerView(VIEW_TYPE_BOARD, (leaf) => new BoardView(leaf));
+	private services!: PluginServices;
 
-		// Ribbon entry point.
-		this.addRibbonIcon('kanban', 'Open agile board', () => {
-			this.activateView();
+	async onload() {
+		const cardService = new CardService(this.app);
+		const indexService = new IndexService(this.app, cardService);
+		const referenceService = new ReferenceService(indexService);
+		const boardService = new BoardService(this.app);
+
+		this.services = { cardService, indexService, referenceService, boardService };
+		indexService.initialize();
+
+		this.registerView(VIEW_TYPE_VPC, (leaf) =>
+			new ValuePropositionView({ leaf, services: this.services, boardPath: '' }));
+		this.registerView(VIEW_TYPE_LEAN, (leaf) =>
+			new LeanCanvasView({ leaf, services: this.services, boardPath: '' }));
+		this.registerView(VIEW_TYPE_IMPACT, (leaf) =>
+			new ImpactMapView({ leaf, services: this.services, boardPath: '' }));
+		this.registerView(VIEW_TYPE_STORY, (leaf) =>
+			new StoryMapView({ leaf, services: this.services, boardPath: '' }));
+		this.registerView(VIEW_TYPE_ROADMAP, (leaf) =>
+			new RoadmapView({ leaf, services: this.services, boardPath: '' }));
+
+		this.addRibbonIcon('layout-grid', 'Open agile board', () => {
+			this.openBoardPicker();
 		});
 
-		// Command palette entry point.
 		this.addCommand({
-			id: 'open-agile-board',
-			name: 'Open agile board',
-			callback: () => this.activateView(),
+			id: 'create-value-proposition-canvas',
+			name: 'Create Value Proposition Canvas',
+			callback: () => this.createAndOpenBoard('value-proposition-canvas', 'Value Proposition Canvas'),
+		});
+
+		this.addCommand({
+			id: 'create-lean-canvas',
+			name: 'Create Lean Canvas',
+			callback: () => this.createAndOpenBoard('lean-canvas', 'Lean Canvas'),
+		});
+
+		this.addCommand({
+			id: 'create-impact-map',
+			name: 'Create Impact Map',
+			callback: () => this.createAndOpenBoard('impact-map', 'Impact Map'),
+		});
+
+		this.addCommand({
+			id: 'create-story-map',
+			name: 'Create Story Map',
+			callback: () => this.createAndOpenBoard('story-map', 'Story Map'),
+		});
+
+		this.addCommand({
+			id: 'create-roadmap',
+			name: 'Create Roadmap',
+			callback: () => this.createAndOpenBoard('roadmap', 'Roadmap'),
 		});
 	}
 
 	async onunload() {
-		// Views, ribbon icons and commands registered above are released
-		// automatically by Obsidian when the plugin unloads. Any manually
-		// created resources (timers, global listeners, DOM nodes) MUST be
-		// cleaned up here.
+		this.services.indexService.destroy();
 	}
 
-	private async activateView() {
-		const { workspace } = this.app;
+	private async createAndOpenBoard(type: BoardType, defaultTitle: string): Promise<void> {
+		const { boardService } = this.services;
+		const file = await boardService.createBoard(type, defaultTitle, { boardType: type });
+		await this.openBoardFile(file);
+	}
 
-		let leaf: WorkspaceLeaf | null = null;
-		const leaves = workspace.getLeavesOfType(VIEW_TYPE_BOARD);
+	private async openBoardFile(file: TFile): Promise<void> {
+		const board = this.services.boardService.parseBoard(file);
+		if (!board) return;
 
-		if (leaves.length > 0) {
-			// Reuse an already-open board.
-			leaf = leaves[0];
-		} else {
-			// Open the board in a new tab.
-			leaf = workspace.getLeaf('tab');
-			await leaf.setViewState({ type: VIEW_TYPE_BOARD, active: true });
+		const viewType = {
+			'value-proposition-canvas': VIEW_TYPE_VPC,
+			'lean-canvas': VIEW_TYPE_LEAN,
+			'impact-map': VIEW_TYPE_IMPACT,
+			'story-map': VIEW_TYPE_STORY,
+			'roadmap': VIEW_TYPE_ROADMAP,
+		}[board.boardType];
+
+		if (!viewType) return;
+
+		const leaf = this.app.workspace.getLeaf('tab');
+
+		// Create a view with the board path set
+		const view = (() => {
+			const services = this.services;
+			const boardPath = file.path;
+			switch (viewType) {
+				case VIEW_TYPE_VPC: return new ValuePropositionView({ leaf, services, boardPath });
+				case VIEW_TYPE_LEAN: return new LeanCanvasView({ leaf, services, boardPath });
+				case VIEW_TYPE_IMPACT: return new ImpactMapView({ leaf, services, boardPath });
+				case VIEW_TYPE_STORY: return new StoryMapView({ leaf, services, boardPath });
+				case VIEW_TYPE_ROADMAP: return new RoadmapView({ leaf, services, boardPath });
+				default: return null;
+			}
+		})();
+
+		if (!view) return;
+
+		await leaf.open(view);
+		this.app.workspace.revealLeaf(leaf);
+	}
+
+	private openBoardPicker(): void {
+		const boards = this.services.boardService.getBoardsOfType('value-proposition-canvas')
+			.concat(this.services.boardService.getBoardsOfType('lean-canvas'))
+			.concat(this.services.boardService.getBoardsOfType('impact-map'))
+			.concat(this.services.boardService.getBoardsOfType('story-map'))
+			.concat(this.services.boardService.getBoardsOfType('roadmap'));
+
+		if (boards.length === 0) {
+			this.createAndOpenBoard('value-proposition-canvas', 'My Value Proposition Canvas');
+			return;
 		}
 
-		workspace.revealLeaf(leaf);
+		// Open the most recently modified board
+		const sorted = boards.sort((a, b) => b.stat.mtime - a.stat.mtime);
+		this.openBoardFile(sorted[0]);
 	}
 }

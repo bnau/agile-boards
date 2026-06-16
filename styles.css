@@ -1,29 +1,356 @@
+/* ===== Common ===== */
 .agile-boards-container {
 	padding: var(--size-4-4);
+	height: 100%;
+	overflow: auto;
 }
 
-.agile-boards-columns {
-	display: flex;
-	gap: var(--size-4-4);
-	align-items: flex-start;
-}
-
-.agile-boards-column {
-	flex: 1;
-	min-width: 200px;
-	background-color: var(--background-secondary);
-	border-radius: var(--radius-m);
-	padding: var(--size-4-2);
-}
-
-.agile-boards-column h3 {
+.agile-boards-container h2 {
 	margin-top: 0;
+	margin-bottom: var(--size-4-4);
 }
 
-.agile-boards-card {
-	background-color: var(--background-primary);
+/* Buttons */
+.agile-btn {
+	background: var(--interactive-normal);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-s);
-	padding: var(--size-4-2);
-	margin-top: var(--size-4-2);
+	color: var(--text-normal);
+	cursor: pointer;
+	font-size: var(--font-smaller);
+	padding: var(--size-2-1) var(--size-4-2);
 }
+
+.agile-btn:hover { background: var(--interactive-hover); }
+.agile-btn--primary { background: var(--interactive-accent); color: var(--text-on-accent); border-color: transparent; }
+.agile-btn--primary:hover { background: var(--interactive-accent-hover); }
+.agile-btn--danger:hover { color: var(--text-error); border-color: var(--text-error); }
+.agile-btn--icon { padding: 0 var(--size-2-1); min-width: 20px; border: none; background: transparent; }
+.agile-btn--icon:hover { background: var(--background-modifier-hover); }
+.agile-btn--small { font-size: var(--font-smallest); padding: 1px var(--size-2-2); }
+.agile-btn--add { border-style: dashed; color: var(--text-muted); }
+.agile-btn--add:hover { color: var(--text-normal); }
+.agile-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Fields */
+.agile-field { display: flex; flex-direction: column; gap: var(--size-2-1); margin-bottom: var(--size-4-2); }
+.agile-field--inline { flex-direction: row; align-items: center; gap: var(--size-2-2); }
+.agile-field__label { font-size: var(--font-smaller); font-weight: var(--font-semibold); color: var(--text-muted); }
+.agile-field__input, .agile-field__select, .agile-field__textarea {
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	color: var(--text-normal);
+	font-size: var(--font-text-size);
+	padding: var(--size-2-2) var(--size-2-3);
+	width: 100%;
+}
+.agile-field__input:focus, .agile-field__select:focus, .agile-field__textarea:focus {
+	border-color: var(--interactive-accent);
+	outline: none;
+}
+.agile-field__textarea { resize: vertical; min-height: 60px; }
+
+/* Overlay modal */
+.agile-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+}
+.agile-overlay__content {
+	background: var(--background-primary);
+	border-radius: var(--radius-m);
+	box-shadow: var(--shadow-l);
+	max-height: 80vh;
+	overflow-y: auto;
+	padding: var(--size-4-4);
+	width: min(480px, 90vw);
+}
+
+/* Card editor */
+.agile-card-editor__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--size-4-3); }
+.agile-card-editor__header h3 { margin: 0; }
+.agile-card-editor__body { display: flex; flex-direction: column; gap: var(--size-4-2); }
+.agile-card-editor__actions { display: flex; gap: var(--size-4-2); justify-content: flex-end; margin-top: var(--size-4-3); }
+
+/* Generic card */
+.agile-card {
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	cursor: pointer;
+	padding: var(--size-4-2);
+}
+.agile-card:hover { border-color: var(--interactive-accent); }
+.agile-card__header { align-items: center; display: flex; gap: var(--size-2-2); }
+.agile-card__type-badge {
+	background: var(--background-secondary);
+	border-radius: var(--radius-s);
+	font-size: var(--font-smallest);
+	padding: 1px var(--size-2-2);
+	color: var(--text-muted);
+}
+.agile-card__title { flex: 1; font-weight: var(--font-semibold); }
+.agile-card__actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.1s; }
+.agile-card:hover .agile-card__actions { opacity: 1; }
+.agile-card__body { margin-top: var(--size-4-2); }
+.agile-card__section { margin-bottom: var(--size-4-2); }
+.agile-card__section-label { color: var(--text-muted); font-size: var(--font-smaller); margin-bottom: var(--size-2-1); }
+.agile-card__list { margin: 0; padding-left: var(--size-4-3); }
+.agile-card__list li { font-size: var(--font-smaller); margin-bottom: 2px; }
+.agile-card__meta { display: flex; gap: var(--size-2-2); flex-wrap: wrap; margin-bottom: var(--size-2-2); }
+.agile-card__badge { background: var(--background-secondary); border-radius: var(--radius-s); font-size: var(--font-smallest); padding: 1px var(--size-2-2); }
+.agile-card__status { border-radius: var(--radius-s); font-size: var(--font-smallest); padding: 1px var(--size-2-2); }
+.agile-card__status--backlog { background: var(--background-secondary); }
+.agile-card__status--ready { background: #e8f4fd; color: #1a73e8; }
+.agile-card__status--in-progress { background: #fef3cd; color: #856404; }
+.agile-card__status--done { background: #d4edda; color: #155724; }
+
+/* Missing reference */
+.agile-missing-reference {
+	align-items: center;
+	background: var(--background-modifier-error);
+	border: 1px solid var(--text-error);
+	border-radius: var(--radius-s);
+	color: var(--text-error);
+	display: flex;
+	font-size: var(--font-smaller);
+	gap: var(--size-2-2);
+	padding: var(--size-2-2) var(--size-2-3);
+}
+.agile-missing-reference__actions { display: flex; gap: var(--size-2-1); margin-left: auto; }
+
+/* Reference selector */
+.agile-reference-selector { position: relative; }
+.agile-reference-selector__selected { display: flex; flex-wrap: wrap; gap: var(--size-2-1); align-items: center; }
+.agile-reference-selector__chip {
+	align-items: center;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-l);
+	display: flex;
+	font-size: var(--font-smaller);
+	gap: var(--size-2-1);
+	padding: 2px var(--size-2-2);
+}
+.agile-reference-selector__dropdown {
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	box-shadow: var(--shadow-m);
+	left: 0;
+	max-height: 240px;
+	overflow-y: auto;
+	position: absolute;
+	top: calc(100% + 4px);
+	width: 280px;
+	z-index: 100;
+}
+.agile-reference-selector__search {
+	background: var(--background-primary);
+	border: none;
+	border-bottom: 1px solid var(--background-modifier-border);
+	color: var(--text-normal);
+	padding: var(--size-2-2) var(--size-2-3);
+	width: 100%;
+}
+.agile-reference-selector__search:focus { outline: none; }
+.agile-reference-selector__list { padding: var(--size-2-1) 0; }
+.agile-reference-selector__item {
+	cursor: pointer;
+	display: flex;
+	font-size: var(--font-smaller);
+	justify-content: space-between;
+	padding: var(--size-2-2) var(--size-2-3);
+}
+.agile-reference-selector__item:hover { background: var(--background-modifier-hover); }
+.agile-reference-selector__item--selected { color: var(--interactive-accent); }
+.agile-reference-selector__check { color: var(--interactive-accent); }
+.agile-reference-selector__empty { color: var(--text-muted); font-size: var(--font-smaller); padding: var(--size-4-2); text-align: center; }
+
+/* ===== Value Proposition Canvas ===== */
+.agile-vpc-board { display: flex; flex-direction: column; gap: var(--size-4-3); }
+.agile-vpc-board__tabs { display: flex; gap: var(--size-2-2); border-bottom: 1px solid var(--background-modifier-border); padding-bottom: var(--size-2-2); flex-wrap: wrap; }
+.agile-vpc-board__tab {
+	align-items: center;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m) var(--radius-m) 0 0;
+	cursor: pointer;
+	display: flex;
+	gap: var(--size-2-1);
+	padding: var(--size-2-2) var(--size-4-2);
+	font-size: var(--font-smaller);
+}
+.agile-vpc-board__tab--active { background: var(--background-primary); border-bottom-color: var(--background-primary); color: var(--interactive-accent); }
+.agile-vpc-board__add-tab { border-style: dashed; }
+.agile-vpc-board__empty { color: var(--text-muted); padding: var(--size-4-8); text-align: center; }
+.agile-vpc-board__panels { display: grid; gap: var(--size-4-4); grid-template-columns: 1fr 1fr; }
+.agile-vpc-panel { background: var(--background-secondary); border-radius: var(--radius-m); padding: var(--size-4-3); }
+.agile-vpc-panel__title { font-size: var(--font-small); margin: 0 0 var(--size-4-3) 0; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.agile-vpc-detail { margin-top: var(--size-4-3); }
+.agile-vpc-section { border-top: 1px solid var(--background-modifier-border); padding-top: var(--size-4-2); margin-top: var(--size-4-2); }
+.agile-vpc-section__title { font-size: var(--font-smaller); font-weight: var(--font-semibold); margin: 0 0 var(--size-2-2) 0; }
+.agile-vpc-section__list { font-size: var(--font-smaller); margin: 0; padding-left: var(--size-4-3); }
+.agile-vpc-section__empty { color: var(--text-faint); font-size: var(--font-smaller); margin: 0; }
+.agile-vpc-panel__placeholder { padding: var(--size-4-3); }
+
+/* ===== Lean Canvas ===== */
+.agile-lean-board {
+	display: grid;
+	gap: 1px;
+	background: var(--background-modifier-border);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	overflow: hidden;
+	grid-template-areas:
+		"problem solution uvp advantage customers"
+		"problem solution uvp advantage customers"
+		"metrics  .       .   .        channels"
+		"cost     cost    cost revenue  revenue";
+	grid-template-columns: repeat(5, 1fr);
+	grid-template-rows: auto auto auto auto;
+}
+.agile-lean-section { background: var(--background-primary); padding: var(--size-4-2); }
+.agile-lean-section--problem { grid-area: problem; }
+.agile-lean-section--solution { grid-area: solution; }
+.agile-lean-section--uvp { grid-area: uvp; }
+.agile-lean-section--advantage { grid-area: advantage; }
+.agile-lean-section--customers { grid-area: customers; }
+.agile-lean-section--metrics { grid-area: metrics; }
+.agile-lean-section--channels { grid-area: channels; }
+.agile-lean-section--cost { grid-area: cost; }
+.agile-lean-section--revenue { grid-area: revenue; }
+.agile-lean-section__header { margin-bottom: var(--size-2-2); }
+.agile-lean-section__title { font-size: var(--font-smaller); font-weight: var(--font-semibold); margin: 0; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.agile-lean-section__items { display: flex; flex-direction: column; gap: var(--size-2-1); margin-bottom: var(--size-2-2); }
+.agile-lean-item { align-items: center; background: var(--background-secondary); border-radius: var(--radius-s); display: flex; font-size: var(--font-smaller); justify-content: space-between; padding: var(--size-2-1) var(--size-2-2); }
+
+/* ===== Impact Mapping ===== */
+.agile-impact-board { padding: var(--size-4-2); overflow-x: auto; }
+.agile-impact-tree { display: flex; flex-direction: column; gap: var(--size-4-2); }
+.agile-impact-node {
+	align-items: center;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	cursor: pointer;
+	display: flex;
+	gap: var(--size-2-2);
+	padding: var(--size-2-2) var(--size-4-2);
+}
+.agile-impact-node:hover { border-color: var(--interactive-accent); }
+.agile-impact-node--goal { background: var(--interactive-accent); color: var(--text-on-accent); border-color: var(--interactive-accent); font-weight: var(--font-semibold); }
+.agile-impact-node--actor { background: var(--background-secondary); }
+.agile-impact-node--impact { background: var(--background-primary); }
+.agile-impact-node--feature { background: var(--background-primary); font-size: var(--font-smaller); }
+.agile-impact-node__type { color: var(--text-muted); font-size: var(--font-smallest); min-width: 48px; }
+.agile-impact-node--goal .agile-impact-node__type { color: rgba(255,255,255,0.7); }
+.agile-impact-node__title { flex: 1; }
+.agile-impact-node__toggle { color: var(--text-muted); width: 12px; }
+.agile-impact-node__label { display: flex; align-items: center; gap: var(--size-2-2); flex: 1; }
+.agile-impact-node__actions { display: flex; gap: var(--size-2-1); }
+.agile-impact-children { border-left: 2px solid var(--background-modifier-border); display: flex; flex-direction: column; gap: var(--size-2-2); margin-left: var(--size-4-4); margin-top: var(--size-2-2); padding-left: var(--size-4-3); }
+.agile-impact-children--impacts { margin-left: var(--size-4-8); }
+.agile-impact-children--features { margin-left: calc(var(--size-4-8) * 2); }
+.agile-impact-branch { display: flex; flex-direction: column; gap: var(--size-2-1); }
+
+/* ===== Story Map ===== */
+.agile-story-board { display: flex; flex-direction: column; gap: var(--size-4-4); }
+.agile-story-board__backbone {
+	background: var(--background-secondary);
+	border-radius: var(--radius-m);
+	display: flex;
+	gap: var(--size-4-2);
+	overflow-x: auto;
+	padding: var(--size-4-2);
+}
+.agile-story-board__backbone-label { color: var(--text-muted); font-size: var(--font-smallest); font-weight: var(--font-semibold); min-width: 60px; text-transform: uppercase; }
+.agile-story-board__backbone-features { display: flex; gap: var(--size-4-2); flex-wrap: wrap; align-items: center; }
+.agile-story-feature {
+	align-items: center;
+	background: var(--interactive-accent);
+	border-radius: var(--radius-m);
+	color: var(--text-on-accent);
+	display: flex;
+	gap: var(--size-2-1);
+	font-size: var(--font-smaller);
+	font-weight: var(--font-semibold);
+	padding: var(--size-2-2) var(--size-4-2);
+}
+.agile-story-feature__title { cursor: pointer; }
+.agile-story-board__grid { display: flex; gap: var(--size-4-2); overflow-x: auto; }
+.agile-story-column { display: flex; flex-direction: column; gap: var(--size-2-2); min-width: 180px; }
+.agile-story-card {
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	font-size: var(--font-smaller);
+	padding: var(--size-2-2) var(--size-4-2);
+}
+.agile-story-card:hover { border-color: var(--interactive-accent); }
+.agile-story-card__title { font-weight: var(--font-semibold); margin-bottom: 2px; }
+.agile-story-card__points { color: var(--text-muted); font-size: var(--font-smallest); }
+.agile-story-card__status { border-radius: 2px; font-size: var(--font-smallest); padding: 1px 4px; }
+.agile-story-card__status--backlog { background: var(--background-secondary); }
+.agile-story-card__status--ready { background: #e8f4fd; color: #1a73e8; }
+.agile-story-card__status--in-progress { background: #fef3cd; color: #856404; }
+.agile-story-card__status--done { background: #d4edda; color: #155724; }
+.agile-story-board__mmfs { border-top: 1px solid var(--background-modifier-border); padding-top: var(--size-4-3); }
+.agile-mmf-band {
+	background: var(--background-secondary);
+	border-radius: var(--radius-m);
+	margin-bottom: var(--size-4-2);
+	padding: var(--size-4-2);
+}
+.agile-mmf-band__header { align-items: center; display: flex; gap: var(--size-2-2); margin-bottom: var(--size-2-2); }
+.agile-mmf-band__title { cursor: pointer; font-weight: var(--font-semibold); }
+.agile-mmf-band__title:hover { color: var(--interactive-accent); }
+.agile-mmf-band__description { color: var(--text-muted); font-size: var(--font-smaller); }
+.agile-mmf-band__stories { display: flex; flex-wrap: wrap; gap: var(--size-2-1); }
+.agile-mmf-band__story-chip { background: var(--background-primary); border: 1px solid var(--background-modifier-border); border-radius: var(--radius-s); font-size: var(--font-smallest); padding: 1px var(--size-2-2); }
+
+/* ===== Roadmap ===== */
+.agile-roadmap-board { display: flex; flex-direction: column; gap: var(--size-4-4); }
+.agile-roadmap-board__header { align-items: center; display: flex; gap: var(--size-4-3); }
+.agile-roadmap-board__header h3 { margin: 0; }
+.agile-roadmap-board__controls { display: flex; gap: var(--size-4-2); }
+.agile-roadmap-releases { display: flex; flex-direction: column; gap: var(--size-4-3); }
+.agile-roadmap-release {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	overflow: hidden;
+}
+.agile-roadmap-release--planned { border-left: 4px solid var(--text-muted); }
+.agile-roadmap-release--in-progress { border-left: 4px solid var(--color-yellow); }
+.agile-roadmap-release--released { border-left: 4px solid var(--color-green); }
+.agile-roadmap-release__header {
+	align-items: center;
+	background: var(--background-primary);
+	display: flex;
+	gap: var(--size-2-2);
+	padding: var(--size-4-2) var(--size-4-3);
+}
+.agile-roadmap-release__title { cursor: pointer; flex: 1; font-weight: var(--font-semibold); }
+.agile-roadmap-release__title:hover { color: var(--interactive-accent); }
+.agile-roadmap-release__version { background: var(--background-secondary); border-radius: var(--radius-s); font-size: var(--font-smallest); margin-left: var(--size-2-2); padding: 1px var(--size-2-2); }
+.agile-roadmap-release__date { color: var(--text-muted); font-size: var(--font-smaller); }
+.agile-roadmap-release__date-value { cursor: pointer; }
+.agile-roadmap-release__date-value:hover { color: var(--interactive-accent); }
+.agile-roadmap-release__status { border-radius: var(--radius-s); font-size: var(--font-smallest); padding: 1px var(--size-2-2); }
+.agile-roadmap-release__status--planned { background: var(--background-secondary); color: var(--text-muted); }
+.agile-roadmap-release__status--in-progress { background: #fef3cd; color: #856404; }
+.agile-roadmap-release__status--released { background: #d4edda; color: #155724; }
+.agile-roadmap-release__items { display: flex; flex-direction: column; gap: var(--size-2-1); padding: var(--size-4-2) var(--size-4-3); }
+.agile-roadmap-item { align-items: center; display: flex; gap: var(--size-2-2); font-size: var(--font-smaller); }
+.agile-roadmap-item__badge { border-radius: var(--radius-s); font-size: var(--font-smallest); padding: 1px var(--size-2-2); }
+.agile-roadmap-item--mmf .agile-roadmap-item__badge { background: var(--interactive-accent); color: var(--text-on-accent); }
+.agile-roadmap-item--story .agile-roadmap-item__badge { background: var(--background-secondary); color: var(--text-muted); }
+.agile-roadmap-item__title { cursor: pointer; }
+.agile-roadmap-item__title:hover { color: var(--interactive-accent); }
+.agile-roadmap-board__add-release { padding: var(--size-4-2); }

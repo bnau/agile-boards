@@ -19,13 +19,13 @@
 
 **Purpose**: Project initialization, type definitions, and base components
 
-- [ ] T001 Create type definitions file in src/types/Card.ts
-- [ ] T002 [P] Create board type definitions in src/types/Board.ts
-- [ ] T003 [P] Create constants file with view IDs and enums in src/constants.ts
-- [ ] T004 [P] Create base Card component in src/components/common/Card.tsx
-- [ ] T005 [P] Create CardEditor modal component in src/components/common/CardEditor.tsx
-- [ ] T006 [P] Create ReferenceSelector component in src/components/common/ReferenceSelector.tsx
-- [ ] T007 [P] Create MissingReference indicator component in src/components/common/MissingReference.tsx
+- [x] T001 Create type definitions file in src/types/Card.ts
+- [x] T002 [P] Create board type definitions in src/types/Board.ts
+- [x] T003 [P] Create constants file with view IDs and enums in src/constants.ts
+- [x] T004 [P] Create base Card component in src/components/common/Card.tsx
+- [x] T005 [P] Create CardEditor modal component in src/components/common/CardEditor.tsx
+- [x] T006 [P] Create ReferenceSelector component in src/components/common/ReferenceSelector.tsx
+- [x] T007 [P] Create MissingReference indicator component in src/components/common/MissingReference.tsx
 
 ---
 
@@ -35,15 +35,15 @@
 
 **⚠️ CRITICAL**: No board implementation can begin until this phase is complete
 
-- [ ] T008 Implement CardService with CRUD operations in src/services/CardService.ts
-- [ ] T009 Implement IndexService for card discovery in src/services/IndexService.ts
-- [ ] T010 [P] Implement ReferenceService for link resolution in src/services/ReferenceService.ts
-- [ ] T011 [P] Implement BoardService for board state management in src/services/BoardService.ts
-- [ ] T012 Create useCards hook in src/hooks/useCards.ts
-- [ ] T013 [P] Create useBoard hook in src/hooks/useBoard.ts
-- [ ] T014 [P] Create useReferences hook in src/hooks/useReferences.ts
-- [ ] T015 Update src/main.ts to initialize IndexService on plugin load
-- [ ] T016 Add board styles to styles.css for common board elements
+- [x] T008 Implement CardService with CRUD operations in src/services/CardService.ts
+- [x] T009 Implement IndexService for card discovery in src/services/IndexService.ts
+- [x] T010 [P] Implement ReferenceService for link resolution in src/services/ReferenceService.ts
+- [x] T011 [P] Implement BoardService for board state management in src/services/BoardService.ts
+- [x] T012 Create useCards hook in src/hooks/useCards.ts
+- [x] T013 [P] Create useBoard hook in src/hooks/useBoard.ts
+- [x] T014 [P] Create useReferences hook in src/hooks/useReferences.ts
+- [x] T015 Update src/main.ts to initialize IndexService on plugin load
+- [x] T016 Add board styles to styles.css for common board elements
 
 **Checkpoint**: Foundation ready — board implementations can now begin
 
@@ -57,16 +57,16 @@
 
 ### Implementation for User Story 1
 
-- [ ] T017 [P] [US1] Define Customer card schema in src/types/Card.ts (add to existing file)
-- [ ] T018 [P] [US1] Define Value card schema in src/types/Card.ts (add to existing file)
-- [ ] T019 [P] [US1] Define VPC board configuration schema in src/types/Board.ts (add to existing file)
-- [ ] T020 [US1] Create VPCBoard React component in src/components/boards/VPCBoard.tsx
-- [ ] T021 [US1] Implement customer segment panel (Jobs, Pains, Gains) in VPCBoard.tsx
-- [ ] T022 [US1] Implement value map panel (Products, Pain Relievers, Gain Creators) in VPCBoard.tsx
-- [ ] T023 [US1] Implement segment tabs/accordion for multiple customers in VPCBoard.tsx
-- [ ] T024 [US1] Create ValuePropositionView ItemView wrapper in src/views/ValuePropositionView.tsx
-- [ ] T025 [US1] Register VPC view and command in src/main.ts
-- [ ] T026 [US1] Add VPC-specific styles to styles.css
+- [x] T017 [P] [US1] Define Customer card schema in src/types/Card.ts (add to existing file)
+- [x] T018 [P] [US1] Define Value card schema in src/types/Card.ts (add to existing file)
+- [x] T019 [P] [US1] Define VPC board configuration schema in src/types/Board.ts (add to existing file)
+- [x] T020 [US1] Create VPCBoard React component in src/components/boards/VPCBoard.tsx
+- [x] T021 [US1] Implement customer segment panel (Jobs, Pains, Gains) in VPCBoard.tsx
+- [x] T022 [US1] Implement value map panel (Products, Pain Relievers, Gain Creators) in VPCBoard.tsx
+- [x] T023 [US1] Implement segment tabs/accordion for multiple customers in VPCBoard.tsx
+- [x] T024 [US1] Create ValuePropositionView ItemView wrapper in src/views/ValuePropositionView.tsx
+- [x] T025 [US1] Register VPC view and command in src/main.ts
+- [x] T026 [US1] Add VPC-specific styles to styles.css
 
 **Checkpoint**: VPC board fully functional — can create, edit, and persist Customer/Value cards
 
@@ -80,17 +80,17 @@
 
 ### Implementation for User Story 2
 
-- [ ] T027 [P] [US2] Define Problem card schema in src/types/Card.ts
-- [ ] T028 [P] [US2] Define Solution card schema in src/types/Card.ts
-- [ ] T029 [P] [US2] Define Lean Canvas board configuration schema in src/types/Board.ts
-- [ ] T030 [US2] Create LeanBoard React component with 9-box grid in src/components/boards/LeanBoard.tsx
-- [ ] T031 [US2] Implement Customer Segments section with reference selector in LeanBoard.tsx
-- [ ] T032 [US2] Implement Problem section with card creation in LeanBoard.tsx
-- [ ] T033 [US2] Implement Solution section with card creation in LeanBoard.tsx
-- [ ] T034 [US2] Implement remaining 6 sections (UVP, Channels, Revenue, Cost, Metrics, Unfair Advantage) in LeanBoard.tsx
-- [ ] T035 [US2] Create LeanCanvasView ItemView wrapper in src/views/LeanCanvasView.tsx
-- [ ] T036 [US2] Register Lean Canvas view and command in src/main.ts
-- [ ] T037 [US2] Add Lean Canvas grid styles to styles.css
+- [x] T027 [P] [US2] Define Problem card schema in src/types/Card.ts
+- [x] T028 [P] [US2] Define Solution card schema in src/types/Card.ts
+- [x] T029 [P] [US2] Define Lean Canvas board configuration schema in src/types/Board.ts
+- [x] T030 [US2] Create LeanBoard React component with 9-box grid in src/components/boards/LeanBoard.tsx
+- [x] T031 [US2] Implement Customer Segments section with reference selector in LeanBoard.tsx
+- [x] T032 [US2] Implement Problem section with card creation in LeanBoard.tsx
+- [x] T033 [US2] Implement Solution section with card creation in LeanBoard.tsx
+- [x] T034 [US2] Implement remaining 6 sections (UVP, Channels, Revenue, Cost, Metrics, Unfair Advantage) in LeanBoard.tsx
+- [x] T035 [US2] Create LeanCanvasView ItemView wrapper in src/views/LeanCanvasView.tsx
+- [x] T036 [US2] Register Lean Canvas view and command in src/main.ts
+- [x] T037 [US2] Add Lean Canvas grid styles to styles.css
 
 **Checkpoint**: Lean Canvas fully functional — references VPC cards, creates new cards for each section
 
@@ -104,19 +104,19 @@
 
 ### Implementation for User Story 3
 
-- [ ] T038 [P] [US3] Define Goal card schema in src/types/Card.ts
-- [ ] T039 [P] [US3] Define Impact card schema in src/types/Card.ts
-- [ ] T040 [P] [US3] Define Feature card schema in src/types/Card.ts
-- [ ] T041 [P] [US3] Define Impact Map board configuration schema in src/types/Board.ts
-- [ ] T042 [US3] Create ImpactBoard React component with tree layout in src/components/boards/ImpactBoard.tsx
-- [ ] T043 [US3] Implement Goal node as tree root in ImpactBoard.tsx
-- [ ] T044 [US3] Implement Actor selection linking to Customer cards in ImpactBoard.tsx
-- [ ] T045 [US3] Implement Impact nodes branching from Actors in ImpactBoard.tsx
-- [ ] T046 [US3] Implement Feature nodes (deliverables) branching from Impacts in ImpactBoard.tsx
-- [ ] T047 [US3] Implement expand/collapse for tree nodes in ImpactBoard.tsx
-- [ ] T048 [US3] Create ImpactMapView ItemView wrapper in src/views/ImpactMapView.tsx
-- [ ] T049 [US3] Register Impact Map view and command in src/main.ts
-- [ ] T050 [US3] Add Impact Map tree styles to styles.css
+- [x] T038 [P] [US3] Define Goal card schema in src/types/Card.ts
+- [x] T039 [P] [US3] Define Impact card schema in src/types/Card.ts
+- [x] T040 [P] [US3] Define Feature card schema in src/types/Card.ts
+- [x] T041 [P] [US3] Define Impact Map board configuration schema in src/types/Board.ts
+- [x] T042 [US3] Create ImpactBoard React component with tree layout in src/components/boards/ImpactBoard.tsx
+- [x] T043 [US3] Implement Goal node as tree root in ImpactBoard.tsx
+- [x] T044 [US3] Implement Actor selection linking to Customer cards in ImpactBoard.tsx
+- [x] T045 [US3] Implement Impact nodes branching from Actors in ImpactBoard.tsx
+- [x] T046 [US3] Implement Feature nodes (deliverables) branching from Impacts in ImpactBoard.tsx
+- [x] T047 [US3] Implement expand/collapse for tree nodes in ImpactBoard.tsx
+- [x] T048 [US3] Create ImpactMapView ItemView wrapper in src/views/ImpactMapView.tsx
+- [x] T049 [US3] Register Impact Map view and command in src/main.ts
+- [x] T050 [US3] Add Impact Map tree styles to styles.css
 
 **Checkpoint**: Impact Map fully functional — hierarchical Goal → Actor → Impact → Feature structure
 
@@ -130,17 +130,17 @@
 
 ### Implementation for User Story 4
 
-- [ ] T051 [P] [US4] Define UserStory card schema in src/types/Card.ts
-- [ ] T052 [P] [US4] Define MMF card schema in src/types/Card.ts
-- [ ] T053 [P] [US4] Define Story Map board configuration schema in src/types/Board.ts
-- [ ] T054 [US4] Create StoryBoard React component with grid layout in src/components/boards/StoryBoard.tsx
-- [ ] T055 [US4] Implement backbone row with Feature references in StoryBoard.tsx
-- [ ] T056 [US4] Implement User Story cards in columns under Features in StoryBoard.tsx
-- [ ] T057 [US4] Implement MMF horizontal bands grouping stories in StoryBoard.tsx
-- [ ] T058 [US4] Implement drag-drop for story reordering (native HTML5 DnD) in StoryBoard.tsx
-- [ ] T059 [US4] Create StoryMapView ItemView wrapper in src/views/StoryMapView.tsx
-- [ ] T060 [US4] Register Story Map view and command in src/main.ts
-- [ ] T061 [US4] Add Story Map grid styles to styles.css
+- [x] T051 [P] [US4] Define UserStory card schema in src/types/Card.ts
+- [x] T052 [P] [US4] Define MMF card schema in src/types/Card.ts
+- [x] T053 [P] [US4] Define Story Map board configuration schema in src/types/Board.ts
+- [x] T054 [US4] Create StoryBoard React component with grid layout in src/components/boards/StoryBoard.tsx
+- [x] T055 [US4] Implement backbone row with Feature references in StoryBoard.tsx
+- [x] T056 [US4] Implement User Story cards in columns under Features in StoryBoard.tsx
+- [x] T057 [US4] Implement MMF horizontal bands grouping stories in StoryBoard.tsx
+- [x] T058 [US4] Implement drag-drop for story reordering (native HTML5 DnD) in StoryBoard.tsx
+- [x] T059 [US4] Create StoryMapView ItemView wrapper in src/views/StoryMapView.tsx
+- [x] T060 [US4] Register Story Map view and command in src/main.ts
+- [x] T061 [US4] Add Story Map grid styles to styles.css
 
 **Checkpoint**: Story Map fully functional — backbone with features, stories in columns, MMF groupings
 
@@ -154,16 +154,16 @@
 
 ### Implementation for User Story 5
 
-- [ ] T062 [P] [US5] Define Release card schema in src/types/Card.ts
-- [ ] T063 [P] [US5] Define Roadmap board configuration schema in src/types/Board.ts
-- [ ] T064 [US5] Create RoadmapBoard React component with timeline layout in src/components/boards/RoadmapBoard.tsx
-- [ ] T065 [US5] Implement timeline header with date range in RoadmapBoard.tsx
-- [ ] T066 [US5] Implement Release rows with MMF/Story assignment in RoadmapBoard.tsx
-- [ ] T067 [US5] Implement date picker for releases and stories in RoadmapBoard.tsx
-- [ ] T068 [US5] Implement chronological sorting of releases in RoadmapBoard.tsx
-- [ ] T069 [US5] Create RoadmapView ItemView wrapper in src/views/RoadmapView.tsx
-- [ ] T070 [US5] Register Roadmap view and command in src/main.ts
-- [ ] T071 [US5] Add Roadmap timeline styles to styles.css
+- [x] T062 [P] [US5] Define Release card schema in src/types/Card.ts
+- [x] T063 [P] [US5] Define Roadmap board configuration schema in src/types/Board.ts
+- [x] T064 [US5] Create RoadmapBoard React component with timeline layout in src/components/boards/RoadmapBoard.tsx
+- [x] T065 [US5] Implement timeline header with date range in RoadmapBoard.tsx
+- [x] T066 [US5] Implement Release rows with MMF/Story assignment in RoadmapBoard.tsx
+- [x] T067 [US5] Implement date picker for releases and stories in RoadmapBoard.tsx
+- [x] T068 [US5] Implement chronological sorting of releases in RoadmapBoard.tsx
+- [x] T069 [US5] Create RoadmapView ItemView wrapper in src/views/RoadmapView.tsx
+- [x] T070 [US5] Register Roadmap view and command in src/main.ts
+- [x] T071 [US5] Add Roadmap timeline styles to styles.css
 
 **Checkpoint**: Roadmap fully functional — releases with dates, MMF/Story assignments, timeline view
 
