@@ -2,7 +2,7 @@ import { App, TFile, stringifyYaml, parseYaml } from 'obsidian';
 import {
 	AgileBoard, BoardType, Ref,
 	VPCBoard, LeanBoard, ImpactBoard, StoryBoard, RoadmapBoard,
-	VPCSegment, LeanSections, ImpactActor, StorySlice, RoadmapRelease,
+	VPCSegment, LeanSections, ImpactActor, ImpactGoal, StorySlice, RoadmapRelease,
 	TimelineUnit, TreeLayout, emptyLeanSections,
 } from '../types/Board';
 import { BOARD_FOLDER } from '../constants';
@@ -83,10 +83,10 @@ export class BoardService {
 			case 'lean-canvas':
 				return Object.values(board.sections).flat();
 			case 'impact-map':
-				return [
-					...(board.goal ? [board.goal] : []),
-					...board.actors.flatMap((a) => [a.actor, ...a.impacts.flatMap((i) => [i.impact, ...i.deliverables])]),
-				];
+				return board.goals.flatMap((g) => [
+					...(g.goal ? [g.goal] : []),
+					...g.actors.flatMap((a) => [a.actor, ...a.impacts.flatMap((i) => [i.impact, ...i.deliverables])]),
+				]);
 			case 'story-map':
 				return [
 					...board.backbone,
@@ -137,11 +137,9 @@ export class BoardService {
 				} as LeanBoard;
 			}
 			case 'impact-map': {
-				const actors = (Array.isArray(fm['actors']) ? fm['actors'] : []) as FrontmatterRecord[];
 				return {
 					...base, boardType: 'impact-map',
-					goal: String(fm['goal'] ?? ''),
-					actors: actors.map(parseActor),
+					goals: parseGoals(fm),
 					layout: (fm['layout'] as TreeLayout) ?? 'horizontal',
 					collapsed: refs(fm['collapsed']),
 				} as ImpactBoard;
@@ -207,8 +205,7 @@ export class BoardService {
 			case 'impact-map': {
 				const b = config as Partial<ImpactBoard>;
 				const out: FrontmatterRecord = {};
-				if (b.goal !== undefined) out['goal'] = b.goal;
-				if (b.actors) out['actors'] = b.actors.map(actorToFm);
+				if (b.goals) out['goals'] = b.goals.map(goalToFm);
 				if (b.layout) out['layout'] = b.layout;
 				if (b.collapsed) out['collapsed'] = b.collapsed;
 				return out;
@@ -246,7 +243,7 @@ export class BoardService {
 			case 'lean-canvas':
 				return this.layoutToFrontmatter('lean-canvas', { sections: emptyLeanSections() } as Partial<LeanBoard>);
 			case 'impact-map':
-				return { goal: '', actors: [], layout: 'horizontal', collapsed: [] };
+				return { goals: [], layout: 'horizontal', collapsed: [] };
 			case 'story-map':
 				return { backbone: [], stories: {}, slices: [] };
 			case 'roadmap':
@@ -342,4 +339,25 @@ function actorToFm(a: ImpactActor): FrontmatterRecord {
 		actor: a.actor,
 		impacts: a.impacts.map((i) => ({ impact: i.impact, deliverables: i.deliverables })),
 	};
+}
+
+function parseGoal(g: FrontmatterRecord): ImpactGoal {
+	const actors = (Array.isArray(g['actors']) ? g['actors'] : []) as FrontmatterRecord[];
+	return { goal: String(g['goal'] ?? ''), actors: actors.map(parseActor) };
+}
+
+// Supports the new multi-goal `goals` array and migrates the legacy single
+// `goal` + top-level `actors` shape into a one-element goals list.
+function parseGoals(fm: FrontmatterRecord): ImpactGoal[] {
+	if (Array.isArray(fm['goals'])) {
+		return (fm['goals'] as FrontmatterRecord[]).map(parseGoal);
+	}
+	const actors = (Array.isArray(fm['actors']) ? fm['actors'] : []) as FrontmatterRecord[];
+	const goal = String(fm['goal'] ?? '');
+	if (!goal && actors.length === 0) return [];
+	return [{ goal, actors: actors.map(parseActor) }];
+}
+
+function goalToFm(g: ImpactGoal): FrontmatterRecord {
+	return { goal: g.goal, actors: g.actors.map(actorToFm) };
 }

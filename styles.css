@@ -295,6 +295,9 @@
 /* ===== Impact Mapping ===== */
 .agile-impact-board { padding: var(--size-4-2); overflow-x: auto; }
 .agile-impact-tree { display: flex; flex-direction: column; gap: var(--size-4-2); }
+.agile-impact-goal { display: flex; flex-direction: column; gap: var(--size-2-2); padding-bottom: var(--size-4-3); }
+.agile-impact-goal + .agile-impact-goal { border-top: 1px solid var(--background-modifier-border); padding-top: var(--size-4-3); }
+.agile-impact-add-goal { margin-top: var(--size-2-2); }
 .agile-impact-node {
 	align-items: center;
 	border: 1px solid var(--background-modifier-border);

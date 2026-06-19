@@ -94,10 +94,14 @@ export interface ImpactActor {
 	impacts: ImpactNode[];
 }
 
+export interface ImpactGoal {
+	goal: Ref;            // Why — a root goal note (may be empty)
+	actors: ImpactActor[];
+}
+
 export interface ImpactBoard extends BaseBoard {
 	boardType: 'impact-map';
-	goal: Ref;            // Why — single root note (may be empty)
-	actors: ImpactActor[];
+	goals: ImpactGoal[];  // Why — each goal is an independent root tree
 	layout: TreeLayout;
 	collapsed: Ref[];     // actor refs whose branch is collapsed
 }
