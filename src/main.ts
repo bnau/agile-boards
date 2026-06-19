@@ -1,4 +1,4 @@
-import { Plugin, TFile, PluginSettingTab, Setting, App } from 'obsidian';
+import { Plugin, TFile, PluginSettingTab, Setting, App, MarkdownView } from 'obsidian';
 import {
 	VIEW_TYPE_VPC, VIEW_TYPE_LEAN, VIEW_TYPE_IMPACT, VIEW_TYPE_STORY, VIEW_TYPE_ROADMAP,
 	DEFAULT_CARDS_FOLDER,
@@ -22,6 +22,9 @@ interface AgileBoardsSettings {
 const DEFAULT_SETTINGS: AgileBoardsSettings = {
 	cardsFolder: DEFAULT_CARDS_FOLDER,
 };
+
+// Marker class on the "Open as agile board" header action, used to dedupe it.
+const BOARD_ACTION_CLASS = 'agile-open-board-action';
 
 export default class AgileBoardsPlugin extends Plugin {
 	settings!: AgileBoardsSettings;
@@ -75,6 +78,14 @@ export default class AgileBoardsPlugin extends Plugin {
 			);
 		}));
 
+		// Add an "Open as agile board" icon to the Markdown view header (next to Edit)
+		// whenever a board note is shown. Reconcile every Markdown leaf on the events
+		// that can change which note a leaf displays.
+		this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.syncBoardActions()));
+		this.registerEvent(this.app.workspace.on('file-open', () => this.syncBoardActions()));
+		this.registerEvent(this.app.workspace.on('layout-change', () => this.syncBoardActions()));
+		this.app.workspace.onLayoutReady(() => this.syncBoardActions());
+
 		this.addSettingTab(new AgileBoardsSettingTab(this.app, this));
 	}
 
@@ -94,6 +105,25 @@ export default class AgileBoardsPlugin extends Plugin {
 	private async createAndOpenBoard(type: BoardType, defaultTitle: string): Promise<void> {
 		const file = await this.services.boardService.createBoard(type, defaultTitle);
 		await this.openBoardFile(file);
+	}
+
+	// Reconciles the "Open as agile board" header icon across all Markdown leaves:
+	// each board note's view gets exactly one icon, non-board views get none.
+	private syncBoardActions(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType('markdown')) {
+			const view = leaf.view;
+			if (!(view instanceof MarkdownView)) continue;
+			const isBoard = !!view.file && !!this.services.boardService.parseBoard(view.file);
+			const existing = view.containerEl.querySelector('.' + BOARD_ACTION_CLASS);
+			if (isBoard && !existing) {
+				const el = view.addAction('layout-grid', 'Open as agile board', () => {
+					if (view.file) this.openBoardFile(view.file, true);
+				});
+				el.addClass(BOARD_ACTION_CLASS);
+			} else if (!isBoard && existing) {
+				existing.remove();
+			}
+		}
 	}
 
 	async openBoardFile(file: TFile, inPlace = false): Promise<void> {
