@@ -1,6 +1,6 @@
 import { Plugin, TFile, PluginSettingTab, Setting, App, MarkdownView } from 'obsidian';
 import {
-	VIEW_TYPE_VPC, VIEW_TYPE_LEAN, VIEW_TYPE_IMPACT, VIEW_TYPE_STORY, VIEW_TYPE_ROADMAP,
+	VIEW_TYPE_VPC, VIEW_TYPE_LEAN, VIEW_TYPE_IMPACT, VIEW_TYPE_STORY, VIEW_TYPE_ROADMAP, VIEW_TYPE_KANBAN,
 	DEFAULT_CARDS_FOLDER,
 } from './constants';
 import { PluginServices } from './context/AppContext';
@@ -8,11 +8,13 @@ import { NoteService } from './services/NoteService';
 import { BoardService } from './services/BoardService';
 import { ReferenceService } from './services/ReferenceService';
 import { IndexService } from './services/IndexService';
+import { ReleaseDateService } from './services/ReleaseDateService';
 import { ValuePropositionView } from './views/ValuePropositionView';
 import { LeanCanvasView } from './views/LeanCanvasView';
 import { ImpactMapView } from './views/ImpactMapView';
 import { StoryMapView } from './views/StoryMapView';
 import { RoadmapView } from './views/RoadmapView';
+import { KanbanView } from './views/KanbanView';
 import { BoardType } from './types/Board';
 
 interface AgileBoardsSettings {
@@ -37,8 +39,9 @@ export default class AgileBoardsPlugin extends Plugin {
 		const boardService = new BoardService(this.app);
 		const referenceService = new ReferenceService(this.app);
 		const indexService = new IndexService(this.app, boardService, referenceService);
+		const releaseDateService = new ReleaseDateService(this.app, boardService, referenceService);
 
-		this.services = { noteService, boardService, referenceService, indexService };
+		this.services = { noteService, boardService, referenceService, indexService, releaseDateService };
 		indexService.initialize();
 
 		this.registerView(VIEW_TYPE_VPC, (leaf) => new ValuePropositionView(leaf, this.services));
@@ -46,6 +49,7 @@ export default class AgileBoardsPlugin extends Plugin {
 		this.registerView(VIEW_TYPE_IMPACT, (leaf) => new ImpactMapView(leaf, this.services));
 		this.registerView(VIEW_TYPE_STORY, (leaf) => new StoryMapView(leaf, this.services));
 		this.registerView(VIEW_TYPE_ROADMAP, (leaf) => new RoadmapView(leaf, this.services));
+		this.registerView(VIEW_TYPE_KANBAN, (leaf) => new KanbanView(leaf, this.services));
 
 		this.addRibbonIcon('layout-grid', 'Open agile board', () => this.openBoardPicker());
 
@@ -54,6 +58,7 @@ export default class AgileBoardsPlugin extends Plugin {
 		this.addCommand({ id: 'create-impact-map', name: 'Create Impact Map', callback: () => this.createAndOpenBoard('impact-map', 'Impact Map') });
 		this.addCommand({ id: 'create-story-map', name: 'Create Story Map', callback: () => this.createAndOpenBoard('story-map', 'Story Map') });
 		this.addCommand({ id: 'create-roadmap', name: 'Create Roadmap', callback: () => this.createAndOpenBoard('roadmap', 'Roadmap') });
+		this.addCommand({ id: 'create-kanban-board', name: 'Create Kanban Board', callback: () => this.createAndOpenBoard('kanban', 'Kanban Board') });
 
 		// Open an EXISTING board note in its canvas view.
 		this.addCommand({
@@ -155,6 +160,7 @@ const VIEW_TYPE_MAP: Partial<Record<BoardType, string>> = {
 	'impact-map': VIEW_TYPE_IMPACT,
 	'story-map': VIEW_TYPE_STORY,
 	'roadmap': VIEW_TYPE_ROADMAP,
+	'kanban': VIEW_TYPE_KANBAN,
 };
 
 class AgileBoardsSettingTab extends PluginSettingTab {

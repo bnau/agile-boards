@@ -10,7 +10,8 @@ export type BoardType =
 	| 'lean-canvas'
 	| 'impact-map'
 	| 'story-map'
-	| 'roadmap';
+	| 'roadmap'
+	| 'kanban';
 
 export type TimelineUnit = 'week' | 'month' | 'quarter';
 export type TreeLayout = 'horizontal' | 'vertical';
@@ -137,4 +138,46 @@ export interface RoadmapBoard extends BaseBoard {
 	releases: RoadmapRelease[];
 }
 
-export type AgileBoard = VPCBoard | LeanBoard | ImpactBoard | StoryBoard | RoadmapBoard;
+/* ===== Kanban ===== */
+
+/** A Fibonacci story-point estimate stored on a story note (frontmatter `estimate:`). */
+export type Estimate = 1 | 2 | 3 | 5 | 8 | 13 | 21;
+
+/** Deadline-color bucket for a card; 'none' means no color is shown. */
+export type DeadlineColor = 'green' | 'yellow' | 'orange' | 'red' | 'blue' | 'none';
+
+export interface KanbanColumn {
+	/** Stable id (keys React lists + story→column placement lookup). */
+	id: string;
+	name: string;
+	/** When true, deadline color is hidden for cards in this column. */
+	terminal?: boolean;
+	/** Ordered story references placed in this column. */
+	cards: Ref[];
+}
+
+export interface KanbanBoard extends BaseBoard {
+	boardType: 'kanban';
+	/**
+	 * Source Roadmap board. Its release items are the stories shown on the board
+	 * (auto-displayed, not imported) and supply the release date for deadline color.
+	 */
+	roadmap?: Ref;
+	/** Fixed workflow columns; store only the per-column card placement. */
+	columns: KanbanColumn[];
+}
+
+/** The six fixed columns of a Kanban board (Done + Impact achieved are terminal). */
+export function defaultKanbanColumns(): KanbanColumn[] {
+	const seed: Array<Omit<KanbanColumn, 'id'>> = [
+		{ name: 'Backlog', cards: [] },
+		{ name: 'To do', cards: [] },
+		{ name: 'Doing', cards: [] },
+		{ name: 'Testing', cards: [] },
+		{ name: 'Done', terminal: true, cards: [] },
+		{ name: 'Impact achieved', terminal: true, cards: [] },
+	];
+	return seed.map((c, i) => ({ id: `col-${i + 1}`, ...c }));
+}
+
+export type AgileBoard = VPCBoard | LeanBoard | ImpactBoard | StoryBoard | RoadmapBoard | KanbanBoard;

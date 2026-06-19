@@ -1,5 +1,6 @@
 import { App, TFile } from 'obsidian';
-import { DEFAULT_CARDS_FOLDER, PREVIEW_LENGTH } from '../constants';
+import { DEFAULT_CARDS_FOLDER, PREVIEW_LENGTH, ESTIMATE_SCALE } from '../constants';
+import { Estimate } from '../types/Board';
 
 /**
  * Where a new post-it note should be filed. The note's folder is derived as
@@ -107,6 +108,44 @@ export class NoteService {
 		const body = stripFrontmatter(raw).replace(/^\s*#\s+.*\n?/, '').trim();
 		if (body.length <= PREVIEW_LENGTH) return body;
 		return body.slice(0, PREVIEW_LENGTH).trimEnd() + '…';
+	}
+
+	/**
+	 * Read a story's Fibonacci estimate from its frontmatter `estimate:`, or null
+	 * when absent or not a valid scale value. Read from the metadata cache.
+	 */
+	getEstimate(file: TFile): Estimate | null {
+		const raw = this.app.metadataCache.getFileCache(file)?.frontmatter?.['estimate'];
+		const n = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN;
+		return (ESTIMATE_SCALE as readonly number[]).includes(n) ? (n as Estimate) : null;
+	}
+
+	/**
+	 * Set (value) or clear (null) a story's estimate. Writes ONLY the `estimate`
+	 * frontmatter key via processFrontMatter; the note body is never rewritten.
+	 */
+	async setEstimate(file: TFile, value: Estimate | null): Promise<void> {
+		await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+			if (value === null) delete fm['estimate'];
+			else fm['estimate'] = value;
+		});
+	}
+
+	/** Read a story's Kanban column from its frontmatter `status:`, or null if absent. */
+	getStatus(file: TFile): string | null {
+		const raw = this.app.metadataCache.getFileCache(file)?.frontmatter?.['status'];
+		return typeof raw === 'string' && raw.trim() ? raw.trim() : null;
+	}
+
+	/**
+	 * Set (value) or clear (null) a story's Kanban column. Writes ONLY the `status`
+	 * frontmatter key via processFrontMatter; the note body is never rewritten.
+	 */
+	async setStatus(file: TFile, value: string | null): Promise<void> {
+		await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+			if (value === null) delete fm['status'];
+			else fm['status'] = value;
+		});
 	}
 
 	/** Explicit, user-initiated delete. The only destructive op on a content note. */

@@ -4,12 +4,14 @@ import { NoteService } from '../services/NoteService';
 import { BoardService } from '../services/BoardService';
 import { ReferenceService } from '../services/ReferenceService';
 import { IndexService } from '../services/IndexService';
+import { ReleaseDateService } from '../services/ReleaseDateService';
 
 export interface PluginServices {
 	noteService: NoteService;
 	boardService: BoardService;
 	referenceService: ReferenceService;
 	indexService: IndexService;
+	releaseDateService: ReleaseDateService;
 }
 
 interface AppContextValue {

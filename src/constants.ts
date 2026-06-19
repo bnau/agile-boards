@@ -3,6 +3,17 @@ export const VIEW_TYPE_LEAN = 'agile-boards-lean';
 export const VIEW_TYPE_IMPACT = 'agile-boards-impact';
 export const VIEW_TYPE_STORY = 'agile-boards-story';
 export const VIEW_TYPE_ROADMAP = 'agile-boards-roadmap';
+export const VIEW_TYPE_KANBAN = 'agile-boards-kanban';
+
+/** Fibonacci story-point scale offered for a Kanban card's estimate. */
+export const ESTIMATE_SCALE = [1, 2, 3, 5, 8, 13, 21] as const;
+
+/**
+ * Deadline-color thresholds (days remaining until a card's release date).
+ * green when days > 30; yellow when ≤30 and >14; orange when ≤14 and >7;
+ * red when ≤7 (including overdue); blue when there is no resolvable date.
+ */
+export const DEADLINE_THRESHOLDS = { green: 30, yellow: 14, orange: 7 } as const;
 
 /** Where board notes (layouts) are created. */
 export const BOARD_FOLDER = 'Agile/Boards';

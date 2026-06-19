@@ -1,9 +1,9 @@
 import { App, TFile, stringifyYaml, parseYaml } from 'obsidian';
 import {
 	AgileBoard, BoardType, Ref,
-	VPCBoard, LeanBoard, ImpactBoard, StoryBoard, RoadmapBoard,
-	VPCSegment, LeanSections, ImpactActor, ImpactGoal, MMF, RoadmapRelease,
-	TimelineUnit, TreeLayout, emptyLeanSections,
+	VPCBoard, LeanBoard, ImpactBoard, StoryBoard, RoadmapBoard, KanbanBoard,
+	VPCSegment, LeanSections, ImpactActor, ImpactGoal, MMF, RoadmapRelease, KanbanColumn,
+	TimelineUnit, TreeLayout, emptyLeanSections, defaultKanbanColumns,
 } from '../types/Board';
 import { BOARD_FOLDER } from '../constants';
 
@@ -95,6 +95,11 @@ export class BoardService {
 				];
 			case 'roadmap':
 				return board.releases.flatMap((r) => r.items);
+			case 'kanban':
+				return [
+					...(board.roadmap ? [board.roadmap] : []),
+					...board.columns.flatMap((c) => c.cards),
+				];
 			default:
 				return [];
 		}
@@ -171,6 +176,14 @@ export class BoardService {
 					} as RoadmapRelease)),
 				} as RoadmapBoard;
 			}
+			case 'kanban': {
+				const cols = parseKanbanColumns(fm['columns']);
+				return {
+					...base, boardType: 'kanban',
+					roadmap: fm['roadmap'] ? String(fm['roadmap']) : undefined,
+					columns: cols.length ? cols : defaultKanbanColumns(),
+				} as KanbanBoard;
+			}
 			default:
 				return null;
 		}
@@ -232,6 +245,13 @@ export class BoardService {
 				}));
 				return out;
 			}
+			case 'kanban': {
+				const b = config as Partial<KanbanBoard>;
+				const out: FrontmatterRecord = {};
+				if (b.roadmap !== undefined) out['roadmap'] = b.roadmap;
+				if (b.columns) out['columns'] = b.columns.map(columnToFm);
+				return out;
+			}
 			default:
 				return {};
 		}
@@ -249,6 +269,8 @@ export class BoardService {
 				return { mmfs: [], stories: {} };
 			case 'roadmap':
 				return { 'timeline-unit': 'month', releases: [] };
+			case 'kanban':
+				return { roadmap: '', columns: defaultKanbanColumns().map(columnToFm) };
 			default:
 				return {};
 		}
@@ -361,4 +383,36 @@ function parseGoals(fm: FrontmatterRecord): ImpactGoal[] {
 
 function goalToFm(g: ImpactGoal): FrontmatterRecord {
 	return { goal: g.goal, actors: g.actors.map(actorToFm) };
+}
+
+// Parse the Kanban `columns` list defensively: assign a stable id when missing,
+// default `terminal` to false, coerce `cards`, and keep a story ref in only its
+// first column so one-column-per-story holds even after a hand-edit.
+function parseKanbanColumns(val: unknown): KanbanColumn[] {
+	if (!Array.isArray(val)) return [];
+	const seen = new Set<string>();
+	return (val as FrontmatterRecord[]).map((c, i) => {
+		const id = c['id'] ? String(c['id']) : `col-${i + 1}`;
+		const cards = refs(c['cards']).filter((ref) => {
+			const key = linkpathOf(ref);
+			if (seen.has(key)) return false;
+			seen.add(key);
+			return true;
+		});
+		const column: KanbanColumn = { id, name: String(c['name'] ?? ''), cards };
+		if (c['terminal'] === true) column.terminal = true;
+		return column;
+	});
+}
+
+function columnToFm(c: KanbanColumn): FrontmatterRecord {
+	const out: FrontmatterRecord = { id: c.id, name: c.name, cards: c.cards };
+	if (c.terminal) out['terminal'] = true;
+	return out;
+}
+
+/** Bare link target of a "[[Target|Alias]]" reference, for de-duplication. */
+function linkpathOf(ref: string): string {
+	const m = ref.match(/\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]/);
+	return (m ? m[1] : ref).trim();
 }
