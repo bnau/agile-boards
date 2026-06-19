@@ -2,6 +2,7 @@ import { ImpactBoard as ImpactBoardType, ImpactActor, ImpactNode } from '../../t
 import { Section } from '../common/Section';
 import { PostIt } from '../common/PostIt';
 import { AddPostIt } from '../common/AddPostIt';
+import { CARD_TYPE } from '../../constants';
 
 interface ImpactBoardProps {
 	board: ImpactBoardType;
@@ -75,7 +76,7 @@ export const ImpactBoard = ({ board, boardPath, onBoardUpdate }: ImpactBoardProp
 											onRemove={() => removeActor(ai)}
 											onReplace={(ref) => replaceActor(ai, ref)}
 											compact
-											cardType="Actor"
+											cardType={CARD_TYPE.customerSegment}
 										/>
 									</div>
 								</div>
@@ -105,7 +106,7 @@ export const ImpactBoard = ({ board, boardPath, onBoardUpdate }: ImpactBoardProp
 														onChange={(refs) => setDeliverables(ai, ii, refs)}
 														compact
 														addLabel="+ Deliverable"
-														cardType="Deliverable"
+														cardType={CARD_TYPE.feature}
 													/>
 												</div>
 											</div>
@@ -116,7 +117,7 @@ export const ImpactBoard = ({ board, boardPath, onBoardUpdate }: ImpactBoardProp
 							</div>
 						);
 					})}
-					<AddPostIt sourcePath={boardPath} onAdd={addActor} label="+ Actor" cardType="Actor" />
+					<AddPostIt sourcePath={boardPath} onAdd={addActor} label="+ Actor" cardType={CARD_TYPE.customerSegment} />
 				</div>
 			</div>
 		</div>

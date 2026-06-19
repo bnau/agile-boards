@@ -1,5 +1,6 @@
 import { RoadmapBoard as RoadmapBoardType, RoadmapRelease, TimelineUnit } from '../../types/Board';
 import { Section } from '../common/Section';
+import { CARD_TYPE } from '../../constants';
 
 interface RoadmapBoardProps {
 	board: RoadmapBoardType;
@@ -86,7 +87,8 @@ export const RoadmapBoard = ({ board, boardPath, onBoardUpdate }: RoadmapBoardPr
 								onChange={(items) => updateRelease(index, { items })}
 								compact
 								addLabel="+ Item"
-								cardType="Item"
+								cardType={CARD_TYPE.story}
+								linkTypes={[CARD_TYPE.story, CARD_TYPE.feature]}
 							/>
 						</div>
 					</div>

@@ -64,17 +64,22 @@ export class NoteService {
 	}
 
 	/**
-	 * Markdown notes filed under the given card type for the board's project,
+	 * Markdown notes filed under the given card type(s) for the board's project,
 	 * i.e. living exactly in `<cardsFolder>/<project>/<type>` — the same folder
 	 * new notes of that type are created in. Used to scope the link picker so a
-	 * "Jobs" slot only offers existing Jobs notes of the current project.
-	 * Untyped notes (sitting directly in the cards folder) are never matched.
-	 * An empty/unknown type falls back to every markdown note.
+	 * "Jobs" slot only offers existing Jobs notes of the current project, while a
+	 * slot that reuses several kinds of note (e.g. a Roadmap item, which holds
+	 * stories and features) can pass multiple types. Untyped notes (sitting
+	 * directly in the cards folder) are never matched. An empty/unknown type
+	 * falls back to every markdown note.
 	 */
-	notesOfType(cardType: string, boardPath?: string): TFile[] {
-		if (!this.sanitize(cardType)) return this.app.vault.getMarkdownFiles();
-		const folder = this.folderFor({ boardPath, cardType });
-		return this.app.vault.getMarkdownFiles().filter((f) => f.parent?.path === folder);
+	notesOfType(cardType: string | string[], boardPath?: string): TFile[] {
+		const types = (Array.isArray(cardType) ? cardType : [cardType])
+			.map((t) => this.sanitize(t))
+			.filter(Boolean);
+		if (types.length === 0) return this.app.vault.getMarkdownFiles();
+		const folders = new Set(types.map((t) => this.folderFor({ boardPath, cardType: t })));
+		return this.app.vault.getMarkdownFiles().filter((f) => f.parent != null && folders.has(f.parent.path));
 	}
 
 	/** Display title for a post-it: first level-1 heading if present, else basename. */

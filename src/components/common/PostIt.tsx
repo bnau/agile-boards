@@ -15,6 +15,8 @@ interface PostItProps {
 	compact?: boolean;
 	/** Board section this post-it belongs to; used as the note's type subfolder on quick-create. */
 	cardType?: string;
+	/** Card types the relink picker may offer; defaults to [cardType]. */
+	linkTypes?: string[];
 }
 
 /**
@@ -22,7 +24,7 @@ interface PostItProps {
  * the underlying note for editing. A missing reference renders a non-destructive
  * indicator with relink / quick-create. The note's content is never edited here.
  */
-export const PostIt = ({ refStr, sourcePath, onRemove, onReplace, compact, cardType }: PostItProps) => {
+export const PostIt = ({ refStr, sourcePath, onRemove, onReplace, compact, cardType, linkTypes }: PostItProps) => {
 	const app = useApp();
 	const { noteService, referenceService } = useServices();
 	const { title, preview, missing, loading } = useNotePreview(refStr, sourcePath);
@@ -32,10 +34,11 @@ export const PostIt = ({ refStr, sourcePath, onRemove, onReplace, compact, cardT
 	};
 
 	const relink = () => {
+		const types = linkTypes ?? (cardType ? [cardType] : []);
 		openNotePicker(
 			app,
 			(file) => onReplace?.(referenceService.toWikilink(file, sourcePath)),
-			cardType ? { items: noteService.notesOfType(cardType, sourcePath), cardType } : {},
+			types.length ? { items: noteService.notesOfType(types, sourcePath), cardType } : {},
 		);
 	};
 

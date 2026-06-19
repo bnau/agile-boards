@@ -10,6 +10,10 @@ interface AddPostItProps {
 	label?: string;
 	/** Board section this post-it belongs to; used as the note's type subfolder. */
 	cardType?: string;
+	/** Card types the link picker may offer; defaults to [cardType]. Lets a slot
+	 * reuse notes of several compatible types (e.g. a Roadmap item links stories
+	 * and features). */
+	linkTypes?: string[];
 }
 
 /**
@@ -17,7 +21,7 @@ interface AddPostItProps {
  * or by linking an existing one. Both paths return a wikilink to add to the
  * board layout; neither edits any note content beyond creating an empty note.
  */
-export const AddPostIt = ({ sourcePath, onAdd, label = '+ Add', cardType }: AddPostItProps) => {
+export const AddPostIt = ({ sourcePath, onAdd, label = '+ Add', cardType, linkTypes }: AddPostItProps) => {
 	const app = useApp();
 	const { noteService, referenceService } = useServices();
 	const [creating, setCreating] = useState(false);
@@ -33,10 +37,11 @@ export const AddPostIt = ({ sourcePath, onAdd, label = '+ Add', cardType }: AddP
 	};
 
 	const linkExisting = () => {
+		const types = linkTypes ?? (cardType ? [cardType] : []);
 		openNotePicker(
 			app,
 			(file) => onAdd(referenceService.toWikilink(file, sourcePath)),
-			cardType ? { items: noteService.notesOfType(cardType, sourcePath), cardType } : {},
+			types.length ? { items: noteService.notesOfType(types, sourcePath), cardType } : {},
 		);
 	};
 

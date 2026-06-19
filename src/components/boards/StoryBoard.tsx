@@ -4,6 +4,7 @@ import { Section } from '../common/Section';
 import { PostIt } from '../common/PostIt';
 import { AddPostIt } from '../common/AddPostIt';
 import { useServices } from '../../context/AppContext';
+import { CARD_TYPE } from '../../constants';
 
 interface StoryBoardProps {
 	board: StoryBoardType;
@@ -56,11 +57,11 @@ export const StoryBoard = ({ board, boardPath, onBoardUpdate }: StoryBoardProps)
 								onRemove={() => removeBackbone(i)}
 								onReplace={(next) => replaceBackbone(i, next)}
 								compact
-								cardType="Activity"
+								cardType={CARD_TYPE.feature}
 							/>
 						</div>
 					))}
-					<AddPostIt sourcePath={boardPath} onAdd={addBackbone} label="+ Activity" cardType="Activity" />
+					<AddPostIt sourcePath={boardPath} onAdd={addBackbone} label="+ Activity" cardType={CARD_TYPE.feature} />
 				</div>
 			</div>
 
@@ -75,7 +76,7 @@ export const StoryBoard = ({ board, boardPath, onBoardUpdate }: StoryBoardProps)
 							onChange={(refs) => setColumn(ref, refs)}
 							compact
 							addLabel="+ Story"
-							cardType="Story"
+							cardType={CARD_TYPE.story}
 						/>
 					</div>
 				))}
@@ -100,7 +101,7 @@ export const StoryBoard = ({ board, boardPath, onBoardUpdate }: StoryBoardProps)
 							onChange={(refs) => setSliceStories(i, refs)}
 							compact
 							addLabel="+ Story"
-							cardType="Story"
+							cardType={CARD_TYPE.story}
 						/>
 					</div>
 				))}
