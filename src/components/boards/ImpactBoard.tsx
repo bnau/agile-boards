@@ -1,13 +1,7 @@
-import { useState } from 'react';
-import { ImpactBoard as ImpactBoardType } from '../../types/Board';
-import { AgileCard, CustomerCard, GoalCard, ImpactCard, FeatureCard } from '../../types/Card';
-import { CardEditor } from '../common/CardEditor';
-import { ReferenceSelector } from '../common/ReferenceSelector';
-import { MissingReference } from '../common/MissingReference';
-import { useCards } from '../../hooks/useCards';
-import { useReference } from '../../hooks/useReferences';
-import { useServices } from '../../context/AppContext';
-import { useApp } from '../../context/AppContext';
+import { ImpactBoard as ImpactBoardType, ImpactActor, ImpactNode } from '../../types/Board';
+import { Section } from '../common/Section';
+import { PostIt } from '../common/PostIt';
+import { AddPostIt } from '../common/AddPostIt';
 
 interface ImpactBoardProps {
 	board: ImpactBoardType;
@@ -16,244 +10,116 @@ interface ImpactBoardProps {
 }
 
 export const ImpactBoard = ({ board, boardPath, onBoardUpdate }: ImpactBoardProps) => {
-	const [creatingGoal, setCreatingGoal] = useState(false);
-	const app = useApp();
-
-	const goalCard = useReference(board.goal) as GoalCard | undefined;
-	const customers = useCards('customer') as CustomerCard[];
-	const impacts = useCards('impact') as ImpactCard[];
-	const features = useCards('feature') as FeatureCard[];
-	const goals = useCards('goal');
-	const { cardService } = useServices();
-
-	const handleCreateGoal = async (title: string, fields: Record<string, unknown>) => {
-		const file = await cardService.createCard('goal', title, fields);
-		await onBoardUpdate({ goal: file.path });
-		setCreatingGoal(false);
+	const updateActors = (fn: (actors: ImpactActor[]) => ImpactActor[]) => {
+		onBoardUpdate({ actors: fn(board.actors.map(cloneActor)) });
 	};
 
-	const handleLinkGoal = async (card: AgileCard) => {
-		await onBoardUpdate({ goal: card.path });
+	const setGoal = (goal: string) => onBoardUpdate({ goal });
+	const addActor = (ref: string) => updateActors((a) => [...a, { actor: ref, impacts: [] }]);
+	const removeActor = (i: number) => updateActors((a) => a.filter((_, idx) => idx !== i));
+	const replaceActor = (i: number, ref: string) => updateActors((a) => a.map((x, idx) => (idx === i ? { ...x, actor: ref } : x)));
+
+	const addImpact = (ai: number, ref: string) =>
+		updateActors((a) => a.map((x, idx) => (idx === ai ? { ...x, impacts: [...x.impacts, { impact: ref, deliverables: [] }] } : x)));
+	const removeImpact = (ai: number, ii: number) =>
+		updateActors((a) => a.map((x, idx) => (idx === ai ? { ...x, impacts: x.impacts.filter((_, j) => j !== ii) } : x)));
+	const replaceImpact = (ai: number, ii: number, ref: string) =>
+		updateActors((a) => a.map((x, idx) => (idx === ai ? { ...x, impacts: x.impacts.map((im, j) => (j === ii ? { ...im, impact: ref } : im)) } : x)));
+	const setDeliverables = (ai: number, ii: number, refs: string[]) =>
+		updateActors((a) => a.map((x, idx) => (idx === ai ? { ...x, impacts: x.impacts.map((im, j) => (j === ii ? { ...im, deliverables: refs } : im)) } : x)));
+
+	const toggleCollapse = (actorRef: string) => {
+		const collapsed = board.collapsed.includes(actorRef)
+			? board.collapsed.filter((r) => r !== actorRef)
+			: [...board.collapsed, actorRef];
+		onBoardUpdate({ collapsed });
 	};
-
-	const handleOpenCard = (card: AgileCard) => {
-		app.workspace.openLinkText(card.title, boardPath, false);
-	};
-
-	const toggleNodeExpanded = async (path: string) => {
-		const expanded = board.expandedNodes.includes(path)
-			? board.expandedNodes.filter((p) => p !== path)
-			: [...board.expandedNodes, path];
-		await onBoardUpdate({ expandedNodes: expanded });
-	};
-
-	const actorsForGoal = customers; // All customers can be actors
-
-	const impactsForActor = (actorPath: string) =>
-		impacts.filter((i) => i.actor === actorPath || i.actor.includes(actorPath));
-
-	const featuresForImpact = (impactPath: string) =>
-		features.filter((f) => f.impacts.some((ref) => ref === impactPath || ref.includes(impactPath)));
 
 	return (
 		<div className="agile-impact-board">
-			{/* Goal (root) */}
 			<div className="agile-impact-tree">
+				{/* Why — Goal */}
 				<div className="agile-impact-node agile-impact-node--goal">
+					<span className="agile-impact-node__type">Goal (Why)</span>
 					<div className="agile-impact-node__label">
-						<span className="agile-impact-node__type">Goal</span>
-						{goalCard ? (
-							<span
-								className="agile-impact-node__title"
-								onClick={() => handleOpenCard(goalCard)}
-								role="button"
-								tabIndex={0}
-								onKeyDown={(e) => e.key === 'Enter' && handleOpenCard(goalCard)}
-							>
-								{goalCard.title}
-							</span>
-						) : board.goal ? (
-							<MissingReference
-								label={board.goal}
-								onCreateNew={() => setCreatingGoal(true)}
-							/>
+						{board.goal ? (
+							<PostIt refStr={board.goal} sourcePath={boardPath} onRemove={() => setGoal('')} onReplace={setGoal} compact />
 						) : (
-							<div className="agile-impact-node__actions">
-								<ReferenceSelector
-									cardType="goal"
-									availableCards={goals}
-									selectedPaths={[]}
-									onSelect={handleLinkGoal}
-									onDeselect={() => {}}
-									onCreateNew={() => setCreatingGoal(true)}
-								/>
-							</div>
+							<AddPostIt sourcePath={boardPath} onAdd={setGoal} label="+ Goal" />
 						)}
 					</div>
 				</div>
 
-				{/* Actors */}
-				{goalCard && (
-					<div className="agile-impact-children">
-						{actorsForGoal.map((actor) => {
-							const actorImpacts = impactsForActor(actor.path);
-							const isExpanded = board.expandedNodes.includes(actor.path);
-
-							return (
-								<div key={actor.path} className="agile-impact-branch">
-									<div
-										className="agile-impact-node agile-impact-node--actor"
-										onClick={() => toggleNodeExpanded(actor.path)}
+				{/* Who — Actors */}
+				<div className="agile-impact-children">
+					{board.actors.map((actor, ai) => {
+						const collapsed = board.collapsed.includes(actor.actor);
+						return (
+							<div key={`${actor.actor}-${ai}`} className="agile-impact-branch">
+								<div className="agile-impact-node agile-impact-node--actor">
+									<span
+										className="agile-impact-node__toggle"
+										onClick={() => toggleCollapse(actor.actor)}
 										role="button"
 										tabIndex={0}
-										onKeyDown={(e) => e.key === 'Enter' && toggleNodeExpanded(actor.path)}
+										onKeyDown={(e) => e.key === 'Enter' && toggleCollapse(actor.actor)}
+										title={collapsed ? 'Expand' : 'Collapse'}
 									>
-										<span className="agile-impact-node__toggle">{isExpanded ? '▼' : '▶'}</span>
-										<span className="agile-impact-node__type">Actor</span>
-										<span className="agile-impact-node__title">{actor.title}</span>
-									</div>
-
-									{isExpanded && (
-										<ActorImpacts
-											actor={actor}
-											impacts={actorImpacts}
-											features={features}
-											boardPath={boardPath}
-											goalPath={goalCard.path}
-											onOpenCard={handleOpenCard}
+										{collapsed ? '▶' : '▼'}
+									</span>
+									<span className="agile-impact-node__type">Actor (Who)</span>
+									<div className="agile-impact-node__label">
+										<PostIt
+											refStr={actor.actor}
+											sourcePath={boardPath}
+											onRemove={() => removeActor(ai)}
+											onReplace={(ref) => replaceActor(ai, ref)}
+											compact
 										/>
-									)}
+									</div>
 								</div>
-							);
-						})}
-					</div>
-				)}
+
+								{!collapsed && (
+									<div className="agile-impact-children agile-impact-children--impacts">
+										{actor.impacts.map((node: ImpactNode, ii) => (
+											<div key={`${node.impact}-${ii}`} className="agile-impact-branch">
+												<div className="agile-impact-node agile-impact-node--impact">
+													<span className="agile-impact-node__type">Impact (How)</span>
+													<div className="agile-impact-node__label">
+														<PostIt
+															refStr={node.impact}
+															sourcePath={boardPath}
+															onRemove={() => removeImpact(ai, ii)}
+															onReplace={(ref) => replaceImpact(ai, ii, ref)}
+															compact
+														/>
+													</div>
+												</div>
+												<div className="agile-impact-children agile-impact-children--features">
+													<Section
+														title="Deliverables (What)"
+														refs={node.deliverables}
+														sourcePath={boardPath}
+														onChange={(refs) => setDeliverables(ai, ii, refs)}
+														compact
+														addLabel="+ Deliverable"
+													/>
+												</div>
+											</div>
+										))}
+										<AddPostIt sourcePath={boardPath} onAdd={(ref) => addImpact(ai, ref)} label="+ Impact" />
+									</div>
+								)}
+							</div>
+						);
+					})}
+					<AddPostIt sourcePath={boardPath} onAdd={addActor} label="+ Actor" />
+				</div>
 			</div>
-
-			{creatingGoal && (
-				<div className="agile-overlay">
-					<div className="agile-overlay__content">
-						<CardEditor
-							cardType="goal"
-							onSave={handleCreateGoal}
-							onCancel={() => setCreatingGoal(false)}
-						/>
-					</div>
-				</div>
-			)}
 		</div>
 	);
-};
 
-interface ActorImpactsProps {
-	actor: CustomerCard;
-	impacts: ImpactCard[];
-	features: FeatureCard[];
-	boardPath: string;
-	goalPath: string;
-	onOpenCard: (card: AgileCard) => void;
-}
-
-const ActorImpacts = ({ actor, impacts, features, goalPath, onOpenCard }: ActorImpactsProps) => {
-	const [creatingImpact, setCreatingImpact] = useState(false);
-	const { cardService } = useServices();
-
-	const handleCreateImpact = async (title: string, fields: Record<string, unknown>) => {
-		await cardService.createCard('impact', title, {
-			...fields,
-			goal: `[[${goalPath}]]`,
-			actor: `[[${actor.title}]]`,
-		});
-		setCreatingImpact(false);
-	};
-
-	return (
-		<div className="agile-impact-children agile-impact-children--impacts">
-			{impacts.map((impact) => {
-				const impactFeatures = features.filter((f) =>
-					f.impacts.some((ref) => ref === impact.path || ref.includes(impact.title))
-				);
-				return (
-					<div key={impact.path} className="agile-impact-branch">
-						<div
-							className="agile-impact-node agile-impact-node--impact"
-							onClick={() => onOpenCard(impact)}
-							role="button"
-							tabIndex={0}
-							onKeyDown={(e) => e.key === 'Enter' && onOpenCard(impact)}
-						>
-							<span className="agile-impact-node__type">Impact</span>
-							<span className="agile-impact-node__title">{impact.title}</span>
-						</div>
-						<ImpactFeatures
-							impact={impact}
-							features={impactFeatures}
-							onOpenCard={onOpenCard}
-						/>
-					</div>
-				);
-			})}
-			{creatingImpact ? (
-				<div className="agile-overlay">
-					<div className="agile-overlay__content">
-						<CardEditor
-							cardType="impact"
-							onSave={handleCreateImpact}
-							onCancel={() => setCreatingImpact(false)}
-						/>
-					</div>
-				</div>
-			) : (
-				<button className="agile-btn agile-btn--add" onClick={() => setCreatingImpact(true)}>
-					+ Impact
-				</button>
-			)}
-		</div>
-	);
-};
-
-const ImpactFeatures = ({ impact, features, onOpenCard }: { impact: ImpactCard; features: FeatureCard[]; onOpenCard: (c: AgileCard) => void }) => {
-	const [creatingFeature, setCreatingFeature] = useState(false);
-	const { cardService } = useServices();
-
-	const handleCreateFeature = async (title: string, fields: Record<string, unknown>) => {
-		await cardService.createCard('feature', title, {
-			...fields,
-			impacts: [`[[${impact.title}]]`],
-		});
-		setCreatingFeature(false);
-	};
-
-	return (
-		<div className="agile-impact-children agile-impact-children--features">
-			{features.map((feature) => (
-				<div
-					key={feature.path}
-					className="agile-impact-node agile-impact-node--feature"
-					onClick={() => onOpenCard(feature)}
-					role="button"
-					tabIndex={0}
-					onKeyDown={(e) => e.key === 'Enter' && onOpenCard(feature)}
-				>
-					<span className="agile-impact-node__type">Feature</span>
-					<span className="agile-impact-node__title">{feature.title}</span>
-				</div>
-			))}
-			{creatingFeature ? (
-				<div className="agile-overlay">
-					<div className="agile-overlay__content">
-						<CardEditor
-							cardType="feature"
-							onSave={handleCreateFeature}
-							onCancel={() => setCreatingFeature(false)}
-						/>
-					</div>
-				</div>
-			) : (
-				<button className="agile-btn agile-btn--add" onClick={() => setCreatingFeature(true)}>
-					+ Feature
-				</button>
-			)}
-		</div>
-	);
+	function cloneActor(a: ImpactActor): ImpactActor {
+		return { actor: a.actor, impacts: a.impacts.map((i) => ({ impact: i.impact, deliverables: [...i.deliverables] })) };
+	}
 };

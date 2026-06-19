@@ -1,3 +1,10 @@
+// Board layout schemas (display-layer architecture).
+//
+// A board note's frontmatter stores ONLY the layout: which content notes appear
+// in which section/slot, and in what order. Every reference below is a wikilink
+// string (e.g. "[[Manage projects]]") pointing at an ordinary vault note — the
+// post-it. Boards never store post-it content; they arrange notes by reference.
+
 export type BoardType =
 	| 'value-proposition-canvas'
 	| 'lean-canvas'
@@ -8,6 +15,9 @@ export type BoardType =
 export type TimelineUnit = 'week' | 'month' | 'quarter';
 export type TreeLayout = 'horizontal' | 'vertical';
 
+/** A wikilink reference to a content note, e.g. "[[Manage projects]]". */
+export type Ref = string;
+
 export interface BaseBoard {
 	boardType: BoardType;
 	path: string;
@@ -16,9 +26,19 @@ export interface BaseBoard {
 	modified: string;
 }
 
+/* ===== Value Proposition Canvas ===== */
+
 export interface VPCSegment {
-	customer: string;
-	value: string;
+	/** Optional anchor note for the segment/persona (reusable as an Impact Map actor). */
+	customer?: Ref;
+	// Customer Profile
+	jobs: Ref[];
+	pains: Ref[];
+	gains: Ref[];
+	// Value Map
+	productsServices: Ref[];
+	painRelievers: Ref[];
+	gainCreators: Ref[];
 }
 
 export interface VPCBoard extends BaseBoard {
@@ -27,16 +47,26 @@ export interface VPCBoard extends BaseBoard {
 	activeSegment: number;
 }
 
+export function emptyVPCSegment(customer?: Ref): VPCSegment {
+	return {
+		customer,
+		jobs: [], pains: [], gains: [],
+		productsServices: [], painRelievers: [], gainCreators: [],
+	};
+}
+
+/* ===== Lean Canvas ===== */
+
 export interface LeanSections {
-	customers: string[];
-	problems: string[];
-	solutions: string[];
-	valuePropositions: string[];
-	channels: string[];
-	revenueStreams: string[];
-	costStructure: string[];
-	keyMetrics: string[];
-	unfairAdvantage: string[];
+	problem: Ref[];
+	solution: Ref[];
+	keyMetrics: Ref[];
+	uniqueValueProposition: Ref[];
+	unfairAdvantage: Ref[];
+	channels: Ref[];
+	customerSegments: Ref[];
+	costStructure: Ref[];
+	revenueStreams: Ref[];
 }
 
 export interface LeanBoard extends BaseBoard {
@@ -44,22 +74,54 @@ export interface LeanBoard extends BaseBoard {
 	sections: LeanSections;
 }
 
-export interface ImpactBoard extends BaseBoard {
-	boardType: 'impact-map';
-	goal: string;
-	layout: TreeLayout;
-	expandedNodes: string[];
+export function emptyLeanSections(): LeanSections {
+	return {
+		problem: [], solution: [], keyMetrics: [], uniqueValueProposition: [],
+		unfairAdvantage: [], channels: [], customerSegments: [],
+		costStructure: [], revenueStreams: [],
+	};
 }
 
-export interface StoryRelease {
+/* ===== Impact Map ===== */
+
+export interface ImpactNode {
+	impact: Ref;          // How — a behaviour-change note
+	deliverables: Ref[];  // What — feature notes
+}
+
+export interface ImpactActor {
+	actor: Ref;           // Who — a customer/persona note
+	impacts: ImpactNode[];
+}
+
+export interface ImpactBoard extends BaseBoard {
+	boardType: 'impact-map';
+	goal: Ref;            // Why — single root note (may be empty)
+	actors: ImpactActor[];
+	layout: TreeLayout;
+	collapsed: Ref[];     // actor refs whose branch is collapsed
+}
+
+/* ===== Story Map ===== */
+
+export interface StorySlice {
 	name: string;
-	mmf: string;
+	stories: Ref[];       // story notes spanned by this release band
 }
 
 export interface StoryBoard extends BaseBoard {
 	boardType: 'story-map';
-	backbone: string[];
-	releases: StoryRelease[];
+	backbone: Ref[];                 // ordered activity/feature notes (top row)
+	stories: Record<string, Ref[]>;  // backbone ref -> ordered column of story notes
+	slices: StorySlice[];            // horizontal release bands
+}
+
+/* ===== Roadmap ===== */
+
+export interface RoadmapRelease {
+	name: string;
+	targetDate?: string;  // ISO date
+	items: Ref[];         // story/feature notes assigned to this release
 }
 
 export interface RoadmapBoard extends BaseBoard {
@@ -67,7 +129,7 @@ export interface RoadmapBoard extends BaseBoard {
 	timelineUnit: TimelineUnit;
 	startDate?: string;
 	endDate?: string;
-	releases: string[];
+	releases: RoadmapRelease[];
 }
 
 export type AgileBoard = VPCBoard | LeanBoard | ImpactBoard | StoryBoard | RoadmapBoard;

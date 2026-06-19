@@ -1,44 +1,37 @@
-import { AgileCard } from '../types/Card';
-import { IndexService } from './IndexService';
+import { App, TFile } from 'obsidian';
 
+/**
+ * Resolves board-layout references (wikilinks) to vault notes, and builds
+ * wikilinks for notes. A reference that does not resolve is reported as missing
+ * so boards can show a non-destructive "missing note" indicator.
+ */
 export class ReferenceService {
-	constructor(private indexService: IndexService) {}
+	constructor(private app: App) {}
 
-	/** Convert a wikilink "[[Title]]" or a path to a resolved AgileCard. */
-	resolve(ref: string): AgileCard | undefined {
-		if (!ref) return undefined;
-
-		// Direct path match
-		const byPath = this.indexService.getCardByPath(ref);
-		if (byPath) return byPath;
-
-		// Wikilink extraction: [[Title]] or [[path|alias]]
-		const wikilinkMatch = ref.match(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/);
-		const target = wikilinkMatch ? wikilinkMatch[1].trim() : ref;
-
-		// Search all cards by title (basename without extension)
-		for (const card of this.indexService.getAllCards()) {
-			if (card.title === target || card.path === target || card.path.endsWith(`/${target}.md`)) {
-				return card;
-			}
-		}
-		return undefined;
+	/** Extract the link target from "[[Target]]" / "[[Target|Alias]]"; passthrough otherwise. */
+	linkpath(ref: string): string {
+		const m = ref.match(/\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]/);
+		return (m ? m[1] : ref).trim();
 	}
 
-	resolveAll(refs: string[]): AgileCard[] {
-		return refs.flatMap((r) => {
-			const card = this.resolve(r);
-			return card ? [card] : [];
-		});
+	/** Resolve a reference to a TFile relative to the board, or null if missing. */
+	resolve(ref: string, sourcePath = ''): TFile | null {
+		if (!ref) return null;
+		return this.app.metadataCache.getFirstLinkpathDest(this.linkpath(ref), sourcePath);
 	}
 
-	/** Create a wikilink string for a card. */
-	toWikilink(card: AgileCard): string {
-		return `[[${card.title}]]`;
+	isValid(ref: string, sourcePath = ''): boolean {
+		return this.resolve(ref, sourcePath) !== null;
 	}
 
-	/** Check whether a reference string resolves to an existing card. */
-	isValid(ref: string): boolean {
-		return this.resolve(ref) !== undefined;
+	/** Build a wikilink for a note (uses the shortest unique link form). */
+	toWikilink(file: TFile, sourcePath = ''): string {
+		const linktext = this.app.metadataCache.fileToLinktext(file, sourcePath);
+		return `[[${linktext}]]`;
+	}
+
+	/** Human-readable label for an (possibly missing) reference. */
+	label(ref: string): string {
+		return this.linkpath(ref).split('/').pop() ?? ref;
 	}
 }

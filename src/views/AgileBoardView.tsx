@@ -7,6 +7,7 @@ export abstract class AgileBoardView extends ItemView {
 	protected root: Root | null = null;
 	protected services: PluginServices;
 	boardPath = '';
+	private actionAdded = false;
 
 	constructor(leaf: WorkspaceLeaf, services: PluginServices) {
 		super(leaf);
@@ -26,7 +27,21 @@ export abstract class AgileBoardView extends ItemView {
 	}
 
 	async onOpen() {
+		if (!this.actionAdded) {
+			// Header toggle: switch this leaf back to the Markdown view of the board note.
+			this.addAction('file-text', 'Open as Markdown', () => this.openAsMarkdown());
+			this.actionAdded = true;
+		}
 		this.refresh();
+	}
+
+	private async openAsMarkdown() {
+		if (!this.boardPath) return;
+		await this.leaf.setViewState({
+			type: 'markdown',
+			state: { file: this.boardPath, mode: 'source' },
+			active: true,
+		});
 	}
 
 	protected refresh() {

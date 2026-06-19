@@ -7,181 +7,169 @@
 
 **Organization**: Tasks grouped by user story (VPC → Lean → Impact → Story → Roadmap) for independent implementation.
 
+> ⚠️ **Architecture revision (2026-06-16)**: the spec moved from "content stored in
+> board/card frontmatter" to a **display-layer model** — each post-it is an ordinary
+> note (one note per post-it) and a board note stores *only* the layout (ordered
+> `[[wikilink]]` references per section). The previous implementation (old `Card`
+> schemas, `CardService`, `CardEditor`, type-per-card frontmatter) is superseded by
+> `NoteService` + `BoardService` + reference resolution and reusable `PostIt`/`Section`
+> components. Tasks below reflect the revised design and start unchecked.
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story (US1-US5) this task belongs to
+- **[Story]**: Which user story (US1–US5) this task belongs to
 - Paths use single project structure: `src/` at repository root
 
 ---
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Project initialization, type definitions, and base components
+**Purpose**: Board-type definitions, constants, and reusable display primitives
 
-- [x] T001 Create type definitions file in src/types/Card.ts
-- [x] T002 [P] Create board type definitions in src/types/Board.ts
-- [x] T003 [P] Create constants file with view IDs and enums in src/constants.ts
-- [x] T004 [P] Create base Card component in src/components/common/Card.tsx
-- [x] T005 [P] Create CardEditor modal component in src/components/common/CardEditor.tsx
-- [x] T006 [P] Create ReferenceSelector component in src/components/common/ReferenceSelector.tsx
-- [x] T007 [P] Create MissingReference indicator component in src/components/common/MissingReference.tsx
+- [x] T001 Define board-type union + per-type layout interfaces in src/types/Board.ts
+- [x] T002 [P] Create constants (view IDs, board-type enum, section keys, default cards folder) in src/constants.ts
+- [x] T003 [P] Create PostIt component (title + body preview, open/remove) in src/components/common/PostIt.tsx
+- [x] T004 [P] Create Section component (ordered, drag-reorderable list of PostIts) in src/components/common/Section.tsx
+- [x] T005 [P] Create AddPostIt affordance (new note / link existing) in src/components/common/AddPostIt.tsx
+- [x] T006 [P] Create NotePicker (fuzzy-search existing vault notes) in src/components/common/NotePicker.tsx
+- [x] T007 [P] Create MissingNote indicator (re-link / quick-create) in src/components/common/MissingNote.tsx
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Core services that ALL board types depend on — MUST complete before user stories
+**Purpose**: Services and hooks every board depends on — MUST complete before user stories
 
 **⚠️ CRITICAL**: No board implementation can begin until this phase is complete
 
-- [x] T008 Implement CardService with CRUD operations in src/services/CardService.ts
-- [x] T009 Implement IndexService for card discovery in src/services/IndexService.ts
-- [x] T010 [P] Implement ReferenceService for link resolution in src/services/ReferenceService.ts
-- [x] T011 [P] Implement BoardService for board state management in src/services/BoardService.ts
-- [x] T012 Create useCards hook in src/hooks/useCards.ts
-- [x] T013 [P] Create useBoard hook in src/hooks/useBoard.ts
-- [x] T014 [P] Create useReferences hook in src/hooks/useReferences.ts
-- [x] T015 Update src/main.ts to initialize IndexService on plugin load
-- [x] T016 Add board styles to styles.css for common board elements
+- [x] T008 Implement NoteService (create content note in configured folder, read title + body preview) in src/services/NoteService.ts
+- [x] T009 Implement BoardService (read/write layout frontmatter: add/move/reorder/remove references) in src/services/BoardService.ts
+- [x] T010 [P] Implement ReferenceService (resolve wikilinks → TFile, detect missing, follow renames) in src/services/ReferenceService.ts
+- [x] T011 [P] Implement IndexService (boards set + referencedBy map, event-driven rebuild) in src/services/IndexService.ts
+- [x] T012 Create useBoard hook (load + mutate layout, re-render on change) in src/hooks/useBoard.ts
+- [x] T013 [P] Create useNotePreview hook (resolve reference → {title, preview, file|missing}) in src/hooks/useNotePreview.ts
+- [x] T014 Initialize IndexService and register vault/metadata event handlers in src/main.ts
+- [x] T015 Add base board + post-it + section styles to styles.css
 
 **Checkpoint**: Foundation ready — board implementations can now begin
 
 ---
 
-## Phase 3: User Story 1 — Create Value Proposition Canvas (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 — Value Proposition Canvas (Priority: P1) 🎯 MVP
 
-**Goal**: Users can create a VPC board with Customer and Value cards for multiple customer segments
+**Goal**: Display vault notes in the VPC two-panel framework across customer segments; add/link/reorder/open post-its.
 
-**Independent Test**: Create VPC board, add customer segments with jobs/pains/gains and value propositions, verify cards persist in vault
+**Independent Test**: Create a VPC board, add post-its (real notes) to Jobs/Pains/Gains and the Value Map, reorder them, open one to confirm it's an ordinary note, reload Obsidian and confirm the layout persists.
 
 ### Implementation for User Story 1
 
-- [x] T017 [P] [US1] Define Customer card schema in src/types/Card.ts (add to existing file)
-- [x] T018 [P] [US1] Define Value card schema in src/types/Card.ts (add to existing file)
-- [x] T019 [P] [US1] Define VPC board configuration schema in src/types/Board.ts (add to existing file)
-- [x] T020 [US1] Create VPCBoard React component in src/components/boards/VPCBoard.tsx
-- [x] T021 [US1] Implement customer segment panel (Jobs, Pains, Gains) in VPCBoard.tsx
-- [x] T022 [US1] Implement value map panel (Products, Pain Relievers, Gain Creators) in VPCBoard.tsx
-- [x] T023 [US1] Implement segment tabs/accordion for multiple customers in VPCBoard.tsx
-- [x] T024 [US1] Create ValuePropositionView ItemView wrapper in src/views/ValuePropositionView.tsx
-- [x] T025 [US1] Register VPC view and command in src/main.ts
-- [x] T026 [US1] Add VPC-specific styles to styles.css
+- [x] T016 [P] [US1] Define VPC layout interface (segments + 6 section arrays) in src/types/Board.ts
+- [x] T017 [US1] Create VPCBoard component with Customer Profile ↔ Value Map panels in src/components/boards/VPCBoard.tsx
+- [x] T018 [US1] Wire the six sections to Section + AddPostIt in VPCBoard.tsx
+- [x] T019 [US1] Implement segment tabs/accordion for multiple segments in VPCBoard.tsx
+- [x] T020 [US1] Create ValuePropositionView ItemView wrapper in src/views/ValuePropositionView.tsx
+- [x] T021 [US1] Register VPC view + "Create Value Proposition Canvas" command in src/main.ts
+- [x] T022 [US1] Add VPC layout styles to styles.css
 
-**Checkpoint**: VPC board fully functional — can create, edit, and persist Customer/Value cards
+**Checkpoint**: VPC fully functional — post-its are real notes, layout persists in the board note
 
 ---
 
-## Phase 4: User Story 2 — Create Lean Canvas (Priority: P2)
+## Phase 4: User Story 2 — Lean Canvas (Priority: P2)
 
-**Goal**: Users can create a Lean Canvas that references existing Customer/Value cards and creates new section cards
+**Goal**: Display notes in the 9-box Lean Canvas, reusing existing customer notes via the picker.
 
-**Independent Test**: Create Lean Canvas, link existing VPC customers, fill all 9 sections, verify new cards created
+**Independent Test**: Create a Lean Canvas, link existing customer notes into Customer Segments, add post-its to the other 8 boxes, reload and confirm the grid layout persists.
 
 ### Implementation for User Story 2
 
-- [x] T027 [P] [US2] Define Problem card schema in src/types/Card.ts
-- [x] T028 [P] [US2] Define Solution card schema in src/types/Card.ts
-- [x] T029 [P] [US2] Define Lean Canvas board configuration schema in src/types/Board.ts
-- [x] T030 [US2] Create LeanBoard React component with 9-box grid in src/components/boards/LeanBoard.tsx
-- [x] T031 [US2] Implement Customer Segments section with reference selector in LeanBoard.tsx
-- [x] T032 [US2] Implement Problem section with card creation in LeanBoard.tsx
-- [x] T033 [US2] Implement Solution section with card creation in LeanBoard.tsx
-- [x] T034 [US2] Implement remaining 6 sections (UVP, Channels, Revenue, Cost, Metrics, Unfair Advantage) in LeanBoard.tsx
-- [x] T035 [US2] Create LeanCanvasView ItemView wrapper in src/views/LeanCanvasView.tsx
-- [x] T036 [US2] Register Lean Canvas view and command in src/main.ts
-- [x] T037 [US2] Add Lean Canvas grid styles to styles.css
+- [x] T023 [P] [US2] Define Lean Canvas layout interface (9 section arrays) in src/types/Board.ts
+- [x] T024 [US2] Create LeanBoard 9-box grid component in src/components/boards/LeanBoard.tsx
+- [x] T025 [US2] Wire all 9 boxes to Section + AddPostIt (Customer Segments emphasizes "link existing") in LeanBoard.tsx
+- [x] T026 [US2] Create LeanCanvasView ItemView wrapper in src/views/LeanCanvasView.tsx
+- [x] T027 [US2] Register Lean Canvas view + command in src/main.ts
+- [x] T028 [US2] Add Lean Canvas grid styles to styles.css
 
-**Checkpoint**: Lean Canvas fully functional — references VPC cards, creates new cards for each section
+**Checkpoint**: Lean Canvas functional — boxes arrange notes, customer notes reused from VPC
 
 ---
 
-## Phase 5: User Story 3 — Create Impact Mapping (Priority: P3)
+## Phase 5: User Story 3 — Impact Mapping (Priority: P3)
 
-**Goal**: Users can create an Impact Map with Goals, Actors (from Customers), Impacts, and Features
+**Goal**: Display notes as a Goal → Actor → Impact → Deliverable tree with expand/collapse, reusing customer notes as Actors.
 
-**Independent Test**: Create Impact Map with goal, link existing customers as actors, add impacts and features, verify tree structure
+**Independent Test**: Create an Impact Map, set a Goal, link customer notes as Actors, branch Impacts and Deliverables, reload and confirm the hierarchy persists.
 
 ### Implementation for User Story 3
 
-- [x] T038 [P] [US3] Define Goal card schema in src/types/Card.ts
-- [x] T039 [P] [US3] Define Impact card schema in src/types/Card.ts
-- [x] T040 [P] [US3] Define Feature card schema in src/types/Card.ts
-- [x] T041 [P] [US3] Define Impact Map board configuration schema in src/types/Board.ts
-- [x] T042 [US3] Create ImpactBoard React component with tree layout in src/components/boards/ImpactBoard.tsx
-- [x] T043 [US3] Implement Goal node as tree root in ImpactBoard.tsx
-- [x] T044 [US3] Implement Actor selection linking to Customer cards in ImpactBoard.tsx
-- [x] T045 [US3] Implement Impact nodes branching from Actors in ImpactBoard.tsx
-- [x] T046 [US3] Implement Feature nodes (deliverables) branching from Impacts in ImpactBoard.tsx
-- [x] T047 [US3] Implement expand/collapse for tree nodes in ImpactBoard.tsx
-- [x] T048 [US3] Create ImpactMapView ItemView wrapper in src/views/ImpactMapView.tsx
-- [x] T049 [US3] Register Impact Map view and command in src/main.ts
-- [x] T050 [US3] Add Impact Map tree styles to styles.css
+- [x] T029 [P] [US3] Define Impact Map layout interface (goal + nested actors/impacts/deliverables) in src/types/Board.ts
+- [x] T030 [US3] Create ImpactBoard tree component (Goal root) in src/components/boards/ImpactBoard.tsx
+- [x] T031 [US3] Implement Actor level linking existing notes in ImpactBoard.tsx
+- [x] T032 [US3] Implement Impact and Deliverable child levels in ImpactBoard.tsx
+- [x] T033 [US3] Implement expand/collapse persisted in layout (`collapsed`) in ImpactBoard.tsx
+- [x] T034 [US3] Create ImpactMapView ItemView wrapper in src/views/ImpactMapView.tsx
+- [x] T035 [US3] Register Impact Map view + command in src/main.ts
+- [x] T036 [US3] Add Impact Map tree styles to styles.css
 
-**Checkpoint**: Impact Map fully functional — hierarchical Goal → Actor → Impact → Feature structure
+**Checkpoint**: Impact Map functional — Why/Who/How/What tree of reused + new notes
 
 ---
 
-## Phase 6: User Story 4 — Create Story Map (Priority: P4)
+## Phase 6: User Story 4 — Story Map (Priority: P4)
 
-**Goal**: Users can create a Story Map with Features as backbone, User Stories in columns, and MMF groupings
+**Goal**: Display notes as a backbone with stacked story columns and horizontal release slices, reusing Feature notes as the backbone.
 
-**Independent Test**: Create Story Map, select features for backbone, add user stories, group into MMFs
+**Independent Test**: Create a Story Map, link Feature notes as the backbone, add story post-its in columns, draw release slices, reload and confirm grid + slices persist.
 
 ### Implementation for User Story 4
 
-- [x] T051 [P] [US4] Define UserStory card schema in src/types/Card.ts
-- [x] T052 [P] [US4] Define MMF card schema in src/types/Card.ts
-- [x] T053 [P] [US4] Define Story Map board configuration schema in src/types/Board.ts
-- [x] T054 [US4] Create StoryBoard React component with grid layout in src/components/boards/StoryBoard.tsx
-- [x] T055 [US4] Implement backbone row with Feature references in StoryBoard.tsx
-- [x] T056 [US4] Implement User Story cards in columns under Features in StoryBoard.tsx
-- [x] T057 [US4] Implement MMF horizontal bands grouping stories in StoryBoard.tsx
-- [x] T058 [US4] Implement drag-drop for story reordering (native HTML5 DnD) in StoryBoard.tsx
-- [x] T059 [US4] Create StoryMapView ItemView wrapper in src/views/StoryMapView.tsx
-- [x] T060 [US4] Register Story Map view and command in src/main.ts
-- [x] T061 [US4] Add Story Map grid styles to styles.css
+- [x] T037 [P] [US4] Define Story Map layout interface (backbone + stories map + slices) in src/types/Board.ts
+- [x] T038 [US4] Create StoryBoard component (backbone top row) in src/components/boards/StoryBoard.tsx
+- [x] T039 [US4] Implement stacked story columns under each backbone item in StoryBoard.tsx
+- [x] T040 [US4] Implement horizontal release slices (walking skeleton first) in StoryBoard.tsx
+- [x] T041 [US4] Implement native HTML5 drag-drop reordering (updates layout only) in StoryBoard.tsx
+- [x] T042 [US4] Create StoryMapView ItemView wrapper in src/views/StoryMapView.tsx
+- [x] T043 [US4] Register Story Map view + command in src/main.ts
+- [x] T044 [US4] Add Story Map grid styles to styles.css
 
-**Checkpoint**: Story Map fully functional — backbone with features, stories in columns, MMF groupings
+**Checkpoint**: Story Map functional — backbone of reused Features, stories in columns, release slices
 
 ---
 
-## Phase 7: User Story 5 — Create Roadmap (Priority: P5)
+## Phase 7: User Story 5 — Roadmap (Priority: P5)
 
-**Goal**: Users can create a Roadmap with Releases, assigned MMFs/Stories, and target dates
+**Goal**: Display release groupings (and their note items) on a timeline with target dates, ordered chronologically.
 
-**Independent Test**: Create Roadmap, add releases with dates, assign MMFs and stories, verify timeline display
+**Independent Test**: Create a Roadmap, set a timeline range, add releases with dates, assign story/feature notes, reload and confirm chronological positioning persists.
 
 ### Implementation for User Story 5
 
-- [x] T062 [P] [US5] Define Release card schema in src/types/Card.ts
-- [x] T063 [P] [US5] Define Roadmap board configuration schema in src/types/Board.ts
-- [x] T064 [US5] Create RoadmapBoard React component with timeline layout in src/components/boards/RoadmapBoard.tsx
-- [x] T065 [US5] Implement timeline header with date range in RoadmapBoard.tsx
-- [x] T066 [US5] Implement Release rows with MMF/Story assignment in RoadmapBoard.tsx
-- [x] T067 [US5] Implement date picker for releases and stories in RoadmapBoard.tsx
-- [x] T068 [US5] Implement chronological sorting of releases in RoadmapBoard.tsx
-- [x] T069 [US5] Create RoadmapView ItemView wrapper in src/views/RoadmapView.tsx
-- [x] T070 [US5] Register Roadmap view and command in src/main.ts
-- [x] T071 [US5] Add Roadmap timeline styles to styles.css
+- [x] T045 [P] [US5] Define Roadmap layout interface (timeline range/unit + releases with dates + items) in src/types/Board.ts
+- [x] T046 [US5] Create RoadmapBoard component with time axis in src/components/boards/RoadmapBoard.tsx
+- [x] T047 [US5] Implement release lanes with assigned note items in RoadmapBoard.tsx
+- [x] T048 [US5] Implement date picker + chronological ordering in RoadmapBoard.tsx
+- [x] T049 [US5] Create RoadmapView ItemView wrapper in src/views/RoadmapView.tsx
+- [x] T050 [US5] Register Roadmap view + command in src/main.ts
+- [x] T051 [US5] Add Roadmap timeline styles to styles.css
 
-**Checkpoint**: Roadmap fully functional — releases with dates, MMF/Story assignments, timeline view
+**Checkpoint**: Roadmap functional — releases positioned by date, reusing Story Map notes
 
 ---
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-**Purpose**: Integration, error handling, and refinements across all boards
+**Purpose**: Reference integrity, data safety, and refinements across all boards
 
-- [x] T072 Implement cross-board navigation (click card → open in board context)
-- [x] T073 [P] Add missing reference warnings across all board components
-- [x] T074 [P] Implement card quick-create from missing reference indicators
-- [x] T075 Add keyboard navigation support to all boards
-- [x] T076 [P] Implement card delete confirmation dialog
-- [x] T077 Add undo support for card operations using Obsidian's undo system
-- [x] T078 Performance optimization: memoize card lookups in IndexService
-- [x] T079 Run quickstart.md validation in development vault
-- [x] T080 Final cleanup: remove console.logs, verify cleanup in onunload
+- [x] T052 Render MissingNote indicators for unresolved references across all boards
+- [x] T053 [P] Implement quick-create + re-link from MissingNote
+- [x] T054 [P] Follow Obsidian rename/move events; re-render boards when referenced notes change
+- [ ] T055 Implement "remove from board" (layout only) distinct from explicit confirmed note delete
+- [ ] T056 [P] Add keyboard navigation across sections and post-its
+- [ ] T057 Performance: memoize reference resolution and body previews
+- [x] T058 Add a setting for the default new-note (cards) folder
+- [ ] T059 Run quickstart.md validation in development vault
+- [x] T060 Final cleanup: remove console.logs, verify all views/events cleaned up in onunload
 
 ---
 
@@ -191,60 +179,42 @@
 
 - **Setup (Phase 1)**: No dependencies — start immediately
 - **Foundational (Phase 2)**: Depends on Setup — BLOCKS all user stories
-- **User Stories (Phases 3-7)**: All depend on Foundational completion
-  - Can proceed sequentially (P1 → P2 → P3 → P4 → P5)
-  - Or in parallel if team capacity allows
+- **User Stories (Phases 3–7)**: All depend on Foundational completion
+  - Sequential by priority (P1 → P5) or parallel if capacity allows
 - **Polish (Phase 8)**: Depends on all user stories complete
 
 ### User Story Dependencies
 
 | Story | Depends On | Independent? |
 |-------|------------|--------------|
-| US1 (VPC) | Foundational only | ✅ Yes — creates Customer/Value cards |
-| US2 (Lean) | Foundational + US1 cards exist | ⚠️ Partial — references VPC cards |
-| US3 (Impact) | Foundational + US1 cards exist | ⚠️ Partial — references Customer cards |
-| US4 (Story) | Foundational + US1/US3 cards exist | ⚠️ Partial — references Customer/Feature cards |
-| US5 (Roadmap) | Foundational + US4 cards exist | ⚠️ Partial — references MMF/Story cards |
+| US1 (VPC) | Foundational only | ✅ Yes — fully standalone |
+| US2 (Lean) | Foundational only | ✅ Yes — can link any notes, reuse VPC notes if present |
+| US3 (Impact) | Foundational only | ✅ Yes — reuses customer notes if present, else create |
+| US4 (Story) | Foundational only | ✅ Yes — reuses Feature notes if present, else create |
+| US5 (Roadmap) | Foundational only | ✅ Yes — reuses story/feature notes if present, else create |
 
-**Note**: While US2-US5 reference cards from previous stories, they can be implemented with empty reference slots. The reference selector will simply show no available cards until the source boards are populated.
+**Note**: Because boards reference *notes* (never other boards), every board type is
+independently usable. Reuse across boards is opportunistic: the picker simply links
+whatever notes already exist. There are no cross-board creation dependencies and no
+circular-dependency risk.
 
 ### Within Each User Story
 
-1. Card schemas first (parallel within story)
-2. Board configuration schema
-3. Board React component
-4. Section implementations
-5. ItemView wrapper
-6. Registration in main.ts
-7. Styles
+1. Layout interface (parallel-safe, in Board.ts)
+2. Board React component
+3. Section/level wiring
+4. ItemView wrapper
+5. Registration in main.ts
+6. Styles
 
 ### Parallel Opportunities
 
-**Phase 1 (Setup)**:
-```
-T002, T003, T004, T005, T006, T007 — all parallel after T001
-```
+**Phase 1 (Setup)**: T002–T007 parallel after (or alongside) T001
+**Phase 2 (Foundational)**: T010, T011 parallel after T008/T009; T013 parallel after T012
+**Each User Story**: the layout-interface task (T016/T023/T029/T037/T045) is parallel-safe
 
-**Phase 2 (Foundational)**:
-```
-T010, T011 — parallel after T008, T009
-T013, T014 — parallel after T012
-```
-
-**Each User Story**: Card schemas (TXX7, TXX8, TXX9) can run in parallel
-
----
-
-## Parallel Example: User Story 1
-
-```bash
-# Card schemas in parallel:
-Task: "Define Customer card schema in src/types/Card.ts"
-Task: "Define Value card schema in src/types/Card.ts"
-Task: "Define VPC board configuration schema in src/types/Board.ts"
-
-# Then sequential: Board component → Sections → View → Registration
-```
+> Coordinate edits to shared files: `src/types/Board.ts`, `src/main.ts`, and `styles.css`
+> are touched by multiple tasks — serialize those edits.
 
 ---
 
@@ -252,30 +222,20 @@ Task: "Define VPC board configuration schema in src/types/Board.ts"
 
 ### MVP First (User Story 1 Only)
 
-1. Complete Phase 1: Setup (T001-T007)
-2. Complete Phase 2: Foundational (T008-T016)
-3. Complete Phase 3: User Story 1 — VPC (T017-T026)
-4. **STOP and VALIDATE**: Test VPC in development vault
-5. Deploy/demo: Minimal viable plugin with VPC boards
+1. Phase 1: Setup (T001–T007)
+2. Phase 2: Foundational (T008–T015)
+3. Phase 3: VPC (T016–T022)
+4. **STOP and VALIDATE**: create a VPC in the dev vault; confirm post-its are real notes and layout persists
+5. Demo: minimal viable plugin — boards that display vault notes
 
 ### Incremental Delivery
 
-1. **Foundation** → Setup + Foundational complete
-2. **+VPC** (US1) → Test → Deploy (MVP!)
-3. **+Lean Canvas** (US2) → Test → Deploy
-4. **+Impact Map** (US3) → Test → Deploy
-5. **+Story Map** (US4) → Test → Deploy
-6. **+Roadmap** (US5) → Test → Deploy
-7. **+Polish** → Final release
-
-Each story adds a new board type without breaking existing boards.
+Foundation → +VPC (MVP) → +Lean → +Impact → +Story → +Roadmap → +Polish.
+Each board type adds a new arrangement without changing the content model.
 
 ### Parallel Team Strategy
 
-With multiple developers after Foundational:
-- Developer A: VPC (US1) → Lean Canvas (US2)
-- Developer B: Impact Map (US3)
-- Developer C: Story Map (US4) → Roadmap (US5)
+After Foundational: Developer A → VPC then Lean; Developer B → Impact; Developer C → Story then Roadmap. All share `Board.ts`/`main.ts`/`styles.css`, so coordinate those edits.
 
 ---
 
@@ -285,5 +245,5 @@ With multiple developers after Foundational:
 - [USn] label maps task to user story for traceability
 - Manual verification in dev vault per constitution (no automated tests required)
 - Commit after each task or logical group
-- Stop at any checkpoint to validate story independently
-- Card schemas share src/types/Card.ts — coordinate additions
+- Stop at any checkpoint to validate a story independently
+- **Data safety**: board mutations edit only board-note frontmatter; the only destructive op on a content note is an explicit, confirmed delete

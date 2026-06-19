@@ -1,15 +1,15 @@
 import { createContext, useContext } from 'react';
 import { App } from 'obsidian';
-import { CardService } from '../services/CardService';
-import { IndexService } from '../services/IndexService';
-import { ReferenceService } from '../services/ReferenceService';
+import { NoteService } from '../services/NoteService';
 import { BoardService } from '../services/BoardService';
+import { ReferenceService } from '../services/ReferenceService';
+import { IndexService } from '../services/IndexService';
 
 export interface PluginServices {
-	cardService: CardService;
-	indexService: IndexService;
-	referenceService: ReferenceService;
+	noteService: NoteService;
 	boardService: BoardService;
+	referenceService: ReferenceService;
+	indexService: IndexService;
 }
 
 interface AppContextValue {

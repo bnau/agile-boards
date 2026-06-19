@@ -1,7 +1,14 @@
 # Quickstart: Agile Board Types
 
 **Feature**: 001-agile-board-types  
-**Date**: 2026-06-16
+**Date**: 2026-06-16 (revised for display-layer architecture)
+
+## The one idea to remember
+
+A board **displays** notes; it does not **store** them. Every post-it on a board
+is an ordinary note in your vault. The board note only remembers *which notes go
+where*. Move a post-it and you change the board's layout — never the note. The
+same note can appear on as many boards as you like.
 
 ## Prerequisites
 
@@ -11,146 +18,144 @@
 
 ## Setup
 
-1. **Clone and install**
+1. **Install**
    ```bash
    cd /path/to/dev-vault/.obsidian/plugins/agile-boards
    npm install
    ```
 
-2. **Start development build**
+2. **Start the watch build**
    ```bash
    npm run dev
    ```
 
-3. **Enable plugin in Obsidian**
-   - Open Settings → Community plugins
-   - Enable "Agile Boards"
-   - (Optional) Install "Hot-Reload" plugin for auto-refresh
+3. **Enable the plugin in Obsidian**
+   - Settings → Community plugins → enable "Agile Boards"
+   - (Optional) Install "Hot-Reload" for auto-refresh on rebuild
 
-## Creating Your First Board
+## Creating your first board
 
 ### 1. Value Proposition Canvas
 
-1. Open command palette (Ctrl/Cmd + P)
-2. Run "Agile Boards: Create Value Proposition Canvas"
-3. Enter board name (e.g., "Q3 Product Strategy")
-4. Add customer segment via the "+" button
-5. Fill in Jobs, Pains, Gains for customer
-6. Fill in Products/Services, Pain Relievers, Gain Creators
+1. Command palette (Ctrl/Cmd + P) → "Agile Boards: Create Value Proposition Canvas"
+2. Name the board (e.g., "Q3 Product Strategy") — this creates the **board note**
+3. In the **Jobs** section, click **+ → New note**, type a title, and a note is created in your vault and shown as a post-it
+4. Add more post-its to **Pains**, **Gains**, and the **Value Map** sections
+5. Click a post-it to **open the underlying note** and write its content
+6. Drag post-its to reorder — only the board layout changes
 
-**Result**: Creates board note + Customer and Value cards in your vault
+**Result**: one board note (layout) + one ordinary note per post-it.
 
-### 2. Lean Canvas
+### 2. Lean Canvas — reuse notes
 
-1. Run "Agile Boards: Create Lean Canvas"
-2. Enter board name
-3. In Customer Segments section, click "Link existing" to reference VPC customers
-4. Fill remaining sections (Problem, Solution, etc.)
+1. "Agile Boards: Create Lean Canvas"
+2. In **Customer Segments**, click **+ → Link existing note** and pick the customer notes you already used on the VPC — the *same* notes now appear here
+3. Add new post-its to the other boxes (Problem, Solution, …)
 
-**Result**: References existing Customer/Value cards, creates new Problem/Solution cards
+**Result**: notes are shared across boards; nothing is copied.
 
 ### 3. Impact Mapping
 
-1. Run "Agile Boards: Create Impact Map"
-2. Define your business Goal
-3. Add Actors by linking existing Customer cards (as Personas)
-4. Define Impacts for each Actor
-5. Add Feature deliverables under Impacts
-
-**Result**: Creates Goal, Impact, Feature cards linked to existing Customers
+1. "Agile Boards: Create Impact Map"
+2. Set the **Goal** (link or create a note)
+3. Add **Actors** by linking existing customer notes
+4. Branch **Impacts** under each Actor, then **Deliverables** (Feature notes) under each Impact
+5. Expand/collapse branches as needed
 
 ### 4. Story Map
 
-1. Run "Agile Boards: Create Story Map"
-2. Select Features from Impact Map as backbone
-3. Add User Stories under each Feature
-4. Group stories into MMF slices (horizontal bands)
-
-**Result**: Creates User Story and MMF cards linked to Features
+1. "Agile Boards: Create Story Map"
+2. Build the **backbone** by linking your Feature (deliverable) notes from the Impact Map
+3. Add **user-story** post-its in the column under each backbone item
+4. Draw horizontal **release slices** across the map (first slice = walking skeleton)
 
 ### 5. Roadmap
 
-1. Run "Agile Boards: Create Roadmap"
-2. Set timeline range (start/end dates)
-3. Create Release milestones
-4. Assign MMFs and User Stories to Releases
-5. Set target dates
+1. "Agile Boards: Create Roadmap"
+2. Set the timeline range and unit (week/month/quarter)
+3. Add **releases** with target dates
+4. Assign story/feature notes to releases; they position chronologically
 
-**Result**: Creates Release cards with date associations
-
-## File Structure
-
-After creating boards, your vault will contain:
+## Where things live in your vault
 
 ```
 vault/
 ├── Agile/
-│   ├── Boards/
-│   │   ├── Q3 Product Strategy (VPC).md
-│   │   ├── Business Model (Lean).md
-│   │   ├── Goals 2026 (Impact).md
-│   │   ├── Product Backlog (Story).md
+│   ├── Boards/                     # board notes = layouts only
+│   │   ├── Q3 Product Strategy.md  # (agile-type: board, board-type: value-proposition-canvas)
+│   │   ├── Business Model.md
+│   │   ├── Goals 2026.md
+│   │   ├── Product Backlog.md
 │   │   └── 2026 Roadmap.md
-│   ├── Customers/
-│   │   ├── Customer - Enterprise.md
-│   │   └── Customer - SMB.md
-│   ├── Values/
-│   │   └── Value - Enterprise VP.md
-│   ├── Problems/
-│   │   └── Problem - Fragmented Planning.md
-│   ├── Features/
-│   │   └── Feature - Unified View.md
-│   ├── Stories/
-│   │   └── US - View Multiple Boards.md
-│   ├── MMFs/
-│   │   └── MMF - Board Foundation.md
-│   └── Releases/
-│       └── Release - v1.0.0.md
+│   └── Cards/                      # content notes = post-its (configurable folder)
+│       ├── Manage projects.md
+│       ├── Tool switching.md
+│       ├── Single source of truth.md
+│       ├── Enterprise.md
+│       └── ...
 ```
 
-## Common Tasks
+> The `Cards/` folder is just where *new* post-it notes are created (configurable).
+> You can place a post-it that points to **any** note anywhere in the vault.
 
-### Link existing card to board
-1. Click reference slot in board
-2. Search/filter existing cards by type
-3. Select card to create reference
+A board note's frontmatter is human-readable — you can inspect or hand-edit the
+layout:
 
-### Create card inline
-1. Click "+" in empty slot
-2. Enter card details in modal
-3. Card created and linked automatically
+```yaml
+---
+agile-type: board
+board-type: value-proposition-canvas
+title: "Q3 Product Strategy"
+segments:
+  - customer: "[[Enterprise]]"
+    jobs:  ["[[Manage projects]]", "[[Track velocity]]"]
+    pains: ["[[Tool switching]]"]
+    gains: ["[[Single source of truth]]"]
+    products-services: ["[[Unified board view]]"]
+    pain-relievers:    ["[[No tool switching]]"]
+    gain-creators:     ["[[Native Obsidian integration]]"]
+active-segment: 0
+---
+```
 
-### View card details
-- Click card to open in current pane
-- Cmd/Ctrl+Click to open in new pane
-- Edit directly in note or use board UI
+## Common tasks
 
-### Handle missing references
-- Yellow indicator shows broken link
-- Click to re-link or create replacement card
+### Add a post-it
+- **+ → New note**: creates a note in the configured folder and links it into the section.
+- **+ → Link existing note**: fuzzy-search any vault note and link it (no copy).
 
-## Keyboard Shortcuts
+### Open / edit a post-it
+- Click → open the note in the current pane. Cmd/Ctrl+Click → new pane. Edit the note as normal Markdown; the post-it preview updates.
+
+### Reorder / move a post-it
+- Drag within a section to reorder, or drag to another section. Only the board layout changes.
+
+### Remove vs delete
+- **Remove from board**: detaches the link from the layout. The note stays in your vault.
+- **Delete note**: a separate, explicitly confirmed action that removes the note file.
+
+### Handle a missing note
+- A yellow "missing note" indicator appears where a link can't be resolved (note deleted/renamed away). Click to **re-link** an existing note or **create** a replacement.
+
+## Keyboard shortcuts
 
 | Action | Shortcut |
 |--------|----------|
 | Create new board | Ctrl/Cmd + Shift + B |
-| Add card | Enter (with slot selected) |
-| Open card | Enter (with card selected) |
-| Delete card | Backspace (with confirmation) |
+| Add post-it | Enter (with a section focused) |
+| Open post-it's note | Enter (with a post-it focused) |
+| Remove post-it from board | Backspace (with confirmation) |
 | Navigate | Arrow keys |
 
 ## Troubleshooting
 
-**Board not loading**: Check console for errors, verify frontmatter is valid YAML
+- **Board won't render**: the board note's layout frontmatter is invalid YAML — fix it in the note; the plugin shows a non-destructive error rather than discarding content.
+- **A post-it shows "missing note"**: the linked note was deleted or renamed outside a tracked rename; re-link or quick-create.
+- **A post-it preview is stale**: edit and save the note; the board re-renders on the metadata-change event.
 
-**Cards not appearing**: Ensure card has `agile-type` in frontmatter, rebuild index via command palette
-
-**References broken**: Card was renamed/moved; click warning to re-link
-
-## Development Commands
+## Development commands
 
 ```bash
-npm run dev      # Watch mode
-npm run build    # Production build
-npm run lint     # Check code style (if configured)
+npm run dev      # Watch build
+npm run build    # Type-check + production bundle
 ```

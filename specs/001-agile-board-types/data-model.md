@@ -1,461 +1,256 @@
 # Data Model: Agile Board Types
 
 **Feature**: 001-agile-board-types  
-**Date**: 2026-06-16
+**Date**: 2026-06-16 (revised for display-layer architecture)
 
-## Entity Overview
+## Mental Model
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              CARD ENTITIES                                  │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  Value Proposition Canvas          Lean Canvas                              │
-│  ┌──────────┐  ┌──────────┐       ┌──────────┐  ┌──────────┐               │
-│  │ Customer │  │  Value   │       │ Problem  │  │ Solution │               │
-│  └────┬─────┘  └────┬─────┘       └──────────┘  └──────────┘               │
-│       │             │                                                       │
-│       └──────┬──────┘                                                       │
-│              │ references                                                   │
-│              ▼                                                              │
-│  Impact Mapping                    Story Map                                │
-│  ┌──────────┐  ┌──────────┐       ┌──────────┐  ┌──────────┐               │
-│  │   Goal   │  │  Impact  │       │   US     │  │   MMF    │               │
-│  └──────────┘  └────┬─────┘       └────┬─────┘  └────┬─────┘               │
-│                     │                  │             │                      │
-│              ┌──────┘                  └──────┬──────┘                      │
-│              ▼                                │ references                  │
-│       ┌──────────┐                            ▼                             │
-│       │ Feature  │                     ┌──────────┐                         │
-│       └──────────┘                     │ Release  │                         │
-│                                        └──────────┘                         │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│  THE VAULT                                                                 │
+│                                                                            │
+│   Content notes (ordinary .md — the post-its)                              │
+│   ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐     │
+│   │ Manage       │ │ Tool         │ │ Single       │ │ Enterprise   │ ... │
+│   │ projects.md  │ │ switching.md │ │ source.md    │ │ (segment).md │     │
+│   └──────▲───────┘ └──────▲───────┘ └──────▲───────┘ └──────▲───────┘     │
+│          │ [[wikilink]]   │                │                │              │
+│   ┌──────┴────────────────┴────────────────┴────────────────┴────────┐    │
+│   │  BOARD NOTE  (agile-type: board)                                   │   │
+│   │  frontmatter = LAYOUT ONLY:                                        │   │
+│   │    section "Jobs"  → [ [[Manage projects]] ]                       │   │
+│   │    section "Pains" → [ [[Tool switching]] ]                        │   │
+│   │    section "Gains" → [ [[Single source]] ]                        │   │
+│   └────────────────────────────────────────────────────────────────────┘  │
+│                                                                            │
+└──────────────────────────────────────────────────────────────────────────┘
+
+A board NEVER stores content. It stores references (wikilinks) and their order.
+Content lives only in the notes. The same note can be referenced by many boards.
 ```
 
-## Base Card Schema
+Two entities exist: **Content Note** (any note) and **Board Note** (a layout). Everything else ("Customer", "Job", "Impact", "Release"…) is a *section role* assigned by a board's layout, not a property of a note.
 
-All cards share a common frontmatter structure:
+## Content Note
 
-```yaml
----
-agile-type: <card-type>        # Required: identifies card type
-created: <ISO-date>            # Required: creation timestamp
-modified: <ISO-date>           # Required: last modification
-tags: []                       # Optional: user tags
----
+**What it is**: An ordinary Markdown note. It is the unit of content — one post-it = one note.
+
+**Required plugin metadata**: **None.** A content note needs no `agile-type` and no board pointers. Any note in the vault can be placed on any board.
+
+**Displayed as a post-it using**:
+- **Title** — first H1 heading if present, otherwise the file basename.
+- **Preview** — a truncated rendering of the note body.
+
+```markdown
+# Manage multiple projects
+
+Enterprise PMs juggle several concurrent initiatives and need a single
+place to see status across all of them.
 ```
 
-## Card Type Definitions
+> The note above is just a note. It becomes a "Job" only because a Value
+> Proposition Canvas lists it under its Jobs section. Placed under an Impact
+> Map's "Deliverables", the very same note would render as a deliverable.
 
-### Customer
+**Optional, user's choice (not required, not written by the plugin by default)**: users may add their own tags or frontmatter for their own organization; the plugin reads none of it for board placement.
 
-**Created by**: Value Proposition Canvas  
-**Consumed by**: Lean Canvas, Impact Mapping, Story Map
+## Board Note
 
-```yaml
----
-agile-type: customer
-created: 2026-06-16
-modified: 2026-06-16
-segment-name: "Enterprise"
-jobs:
-  - "Manage multiple projects"
-  - "Track team velocity"
-pains:
-  - "Switching between tools"
-  - "Lost context between boards"
-gains:
-  - "Single source of truth"
-  - "Faster planning sessions"
----
-# Customer: Enterprise
+**What it is**: A note that declares itself a board and encodes a framework layout in its frontmatter. The body may hold a free-form description.
 
-[User-authored description and notes]
-```
-
-**Validation Rules**:
-- `segment-name`: Required, non-empty string
-- `jobs`: Optional array, at least one recommended
-- `pains`: Optional array
-- `gains`: Optional array
-
----
-
-### Value
-
-**Created by**: Value Proposition Canvas  
-**Consumed by**: Lean Canvas
-
-```yaml
----
-agile-type: value
-created: 2026-06-16
-modified: 2026-06-16
-customer: "[[Customer - Enterprise]]"
-products-services:
-  - "Unified board interface"
-  - "Vault-backed storage"
-pain-relievers:
-  - "No tool switching"
-  - "Markdown export"
-gain-creators:
-  - "Native Obsidian integration"
-  - "Offline support"
----
-# Value: Enterprise Value Proposition
-
-[User-authored description]
-```
-
-**Validation Rules**:
-- `customer`: Required, valid wikilink to Customer card
-- At least one of `products-services`, `pain-relievers`, or `gain-creators` recommended
-
----
-
-### Problem
-
-**Created by**: Lean Canvas
-
-```yaml
----
-agile-type: problem
-created: 2026-06-16
-modified: 2026-06-16
-severity: high
-existing-alternatives:
-  - "Trello + manual sync"
-  - "Physical sticky notes"
----
-# Problem: Fragmented Agile Planning
-
-[Problem description]
-```
-
-**Validation Rules**:
-- `severity`: Optional, enum: `low`, `medium`, `high`, `critical`
-- `existing-alternatives`: Optional array
-
----
-
-### Solution
-
-**Created by**: Lean Canvas
-
-```yaml
----
-agile-type: solution
-created: 2026-06-16
-modified: 2026-06-16
-problems:
-  - "[[Problem - Fragmented Planning]]"
----
-# Solution: Integrated Agile Boards
-
-[Solution description]
-```
-
-**Validation Rules**:
-- `problems`: Optional array of wikilinks to Problem cards
-
----
-
-### Goal
-
-**Created by**: Impact Mapping
-
-```yaml
----
-agile-type: goal
-created: 2026-06-16
-modified: 2026-06-16
-metrics:
-  - metric: "User adoption"
-    target: "1000 active users"
-    timeframe: "6 months"
-  - metric: "Task completion rate"
-    target: "90%"
----
-# Goal: Increase Team Productivity
-
-[Goal description and context]
-```
-
-**Validation Rules**:
-- `metrics`: Optional array of objects with `metric`, `target`, optional `timeframe`
-
----
-
-### Impact
-
-**Created by**: Impact Mapping
-
-```yaml
----
-agile-type: impact
-created: 2026-06-16
-modified: 2026-06-16
-goal: "[[Goal - Increase Productivity]]"
-actor: "[[Customer - Enterprise]]"
-behavior-change: "positive"
----
-# Impact: Reduce Context Switching
-
-[Description of the behavioral impact]
-```
-
-**Validation Rules**:
-- `goal`: Required, wikilink to Goal card
-- `actor`: Required, wikilink to Customer card
-- `behavior-change`: Optional, enum: `positive` (encourage), `negative` (prevent)
-
----
-
-### Feature
-
-**Created by**: Impact Mapping  
-**Consumed by**: Story Map
-
-```yaml
----
-agile-type: feature
-created: 2026-06-16
-modified: 2026-06-16
-impacts:
-  - "[[Impact - Reduce Context Switching]]"
-  - "[[Impact - Faster Planning]]"
-priority: high
----
-# Feature: Unified Board View
-
-[Feature description]
-```
-
-**Validation Rules**:
-- `impacts`: Required, at least one wikilink to Impact card
-- `priority`: Optional, enum: `low`, `medium`, `high`, `critical`
-
----
-
-### User Story (US)
-
-**Created by**: Story Map  
-**Consumed by**: Roadmap
-
-```yaml
----
-agile-type: user-story
-created: 2026-06-16
-modified: 2026-06-16
-feature: "[[Feature - Unified Board View]]"
-customer: "[[Customer - Enterprise]]"
-story-points: 5
-acceptance-criteria:
-  - "User can view all board types from single interface"
-  - "Board state persists between sessions"
-status: backlog
----
-# US: View Multiple Boards
-
-As an Enterprise user,
-I want to view all my boards in a unified interface,
-So that I can reduce context switching.
-
-## Acceptance Criteria
-- [ ] User can view all board types from single interface
-- [ ] Board state persists between sessions
-```
-
-**Validation Rules**:
-- `feature`: Required, wikilink to Feature card
-- `customer`: Optional, wikilink to Customer card
-- `story-points`: Optional, positive integer
-- `acceptance-criteria`: Required, non-empty array
-- `status`: Optional, enum: `backlog`, `ready`, `in-progress`, `done`
-
----
-
-### MMF (Minimum Marketable Feature)
-
-**Created by**: Story Map  
-**Consumed by**: Roadmap
-
-```yaml
----
-agile-type: mmf
-created: 2026-06-16
-modified: 2026-06-16
-stories:
-  - "[[US - View Multiple Boards]]"
-  - "[[US - Create Cards]]"
-  - "[[US - Link Cards]]"
-description: "Core board viewing and card management"
----
-# MMF: Board Foundation
-
-[MMF description - what makes this a marketable unit]
-```
-
-**Validation Rules**:
-- `stories`: Required, at least one wikilink to User Story card
-- `description`: Optional, short summary
-
----
-
-### Release
-
-**Created by**: Roadmap
-
-```yaml
----
-agile-type: release
-created: 2026-06-16
-modified: 2026-06-16
-target-date: 2026-07-15
-mmfs:
-  - "[[MMF - Board Foundation]]"
-stories:
-  - "[[US - Quick Actions]]"
-status: planned
-version: "1.0.0"
----
-# Release: v1.0.0 - Foundation
-
-[Release notes and goals]
-```
-
-**Validation Rules**:
-- `target-date`: Optional, ISO date string
-- `mmfs`: Optional array of wikilinks to MMF cards
-- `stories`: Optional array of wikilinks to User Story cards (for stories not in MMFs)
-- `status`: Optional, enum: `planned`, `in-progress`, `released`
-- `version`: Optional, semver string
-
----
-
-## Board Entity
-
-Boards are also stored as notes with special frontmatter:
-
+**Common frontmatter**:
 ```yaml
 ---
 agile-type: board
-board-type: value-proposition-canvas  # or: lean-canvas, impact-map, story-map, roadmap
+board-type: value-proposition-canvas   # | lean-canvas | impact-map | story-map | roadmap
 title: "Q3 Product Strategy"
 created: 2026-06-16
 modified: 2026-06-16
+# ...board-type-specific layout follows (see below)
 ---
 # Q3 Product Strategy
 
-[Optional board description]
+Optional free-form notes about this board.
 ```
 
-### Board Type Configurations
+**Layout invariants** (apply to every board type):
+- Every slot value is either a single `"[[wikilink]]"` or an **ordered array** of wikilinks to content notes.
+- Order in the array == display order on the board.
+- A board never contains the post-it text itself — only links.
+- Editing arrays (reorder / add / remove links) is the only thing reordering or removing a post-it does; the referenced notes are never touched.
+- An unresolved link is rendered as a "missing note" indicator (re-link / quick-create), never silently dropped.
 
-#### Value Proposition Canvas Board
+### Section / Slot
+
+A named region of a framework that holds an ordered list of references. The section name defines the **role** a note plays while shown there. Sections are fixed per board type (frameworks are predefined).
+
+### Reference
+
+A standard Obsidian `[[wikilink]]`. Resolved at render time via `MetadataCache`. Rename/move events keep links valid automatically.
+
+---
+
+## Per-Board Layout Schemas
+
+> These describe the **board note frontmatter only**. None of these fields ever
+> appear on the content notes they point to.
+
+### Value Proposition Canvas
+
 ```yaml
 ---
 agile-type: board
 board-type: value-proposition-canvas
+title: "Q3 Product Strategy"
 segments:
-  - customer: "[[Customer - Enterprise]]"
-    value: "[[Value - Enterprise VP]]"
-  - customer: "[[Customer - SMB]]"
-    value: "[[Value - SMB VP]]"
+  - customer: "[[Enterprise]]"          # optional anchor note for the segment
+    # Customer Profile
+    jobs:            ["[[Manage projects]]", "[[Track velocity]]"]
+    pains:           ["[[Tool switching]]", "[[Lost context]]"]
+    gains:           ["[[Single source of truth]]"]
+    # Value Map
+    products-services: ["[[Unified board view]]"]
+    pain-relievers:    ["[[No tool switching]]"]
+    gain-creators:     ["[[Native Obsidian integration]]"]
+  - customer: "[[SMB]]"
+    jobs: []
+    pains: []
+    gains: []
+    products-services: []
+    pain-relievers: []
+    gain-creators: []
 active-segment: 0
 ---
 ```
+- `segments`: ordered list; each is a Customer Profile ↔ Value Map pair.
+- `customer`: optional link to a "segment/persona" note (itself reusable as an Actor on an Impact Map).
+- Six section arrays per segment; all arrays of links, all may be empty.
 
-#### Lean Canvas Board
+### Lean Canvas
+
 ```yaml
 ---
 agile-type: board
 board-type: lean-canvas
+title: "Business Model"
 sections:
-  customers:
-    - "[[Customer - Enterprise]]"
-  problems:
-    - "[[Problem - Fragmented Planning]]"
-  solutions:
-    - "[[Solution - Integrated Boards]]"
-  value-propositions:
-    - "[[Value - Enterprise VP]]"
-  channels: []
-  revenue-streams: []
-  cost-structure: []
-  key-metrics: []
-  unfair-advantage: []
+  problem:          ["[[Fragmented planning]]"]
+  solution:         ["[[Integrated boards]]"]
+  key-metrics:      ["[[Weekly active boards]]"]
+  unique-value-proposition: ["[[One vault, every framework]]"]
+  unfair-advantage: ["[[Vault-native data]]"]
+  channels:         ["[[Community plugins directory]]"]
+  customer-segments: ["[[Enterprise]]", "[[SMB]]"]   # reused from VPC
+  cost-structure:   ["[[Maintenance time]]"]
+  revenue-streams:  ["[[Donations]]"]
 ---
 ```
+- Nine fixed keys, each an ordered array of links. `customer-segments` commonly reuses the same notes referenced by a VPC board.
 
-#### Impact Map Board
+### Impact Map
+
 ```yaml
 ---
 agile-type: board
 board-type: impact-map
-goal: "[[Goal - Increase Productivity]]"
-layout: horizontal  # or: vertical
-expanded-nodes:
-  - "[[Customer - Enterprise]]"
+title: "Goals 2026"
+goal: "[[Increase team productivity]]"     # the single Why (root)
+actors:                                    # Who → How → What tree
+  - actor: "[[Enterprise]]"                # reused customer note
+    impacts:
+      - impact: "[[Reduce context switching]]"
+        deliverables: ["[[Unified board view]]", "[[Quick switcher]]"]
+      - impact: "[[Faster planning]]"
+        deliverables: ["[[Inline editing]]"]
+  - actor: "[[SMB]]"
+    impacts: []
+layout: horizontal          # | vertical
+collapsed: ["[[SMB]]"]      # branches the user collapsed
 ---
 ```
+- `goal`: single link (root of the tree).
+- `actors[]` → `impacts[]` → `deliverables[]`: nested arrays of links expressing the Who/How/What hierarchy.
+- `deliverables` (Feature notes) are commonly reused as the Story Map backbone.
 
-#### Story Map Board
+### Story Map
+
 ```yaml
 ---
 agile-type: board
 board-type: story-map
-backbone:
-  - "[[Feature - Unified View]]"
-  - "[[Feature - Card Management]]"
-releases:
-  - name: "Release 1"
-    mmf: "[[MMF - Board Foundation]]"
+title: "Product Backlog"
+backbone: ["[[Unified board view]]", "[[Card management]]"]   # ordered activities/features
+stories:                       # one column of stacked story notes per backbone item
+  "[[Unified board view]]": ["[[View all boards]]", "[[Switch boards]]"]
+  "[[Card management]]":     ["[[Create card]]", "[[Link card]]", "[[Move card]]"]
+slices:                        # horizontal release bands (walking skeleton first)
+  - name: "Release 1 (walking skeleton)"
+    stories: ["[[View all boards]]", "[[Create card]]"]
   - name: "Release 2"
-    mmf: "[[MMF - Advanced Features]]"
+    stories: ["[[Switch boards]]", "[[Link card]]"]
 ---
 ```
+- `backbone`: ordered links (top row), commonly reusing Impact Map deliverables.
+- `stories`: map from a backbone link to its ordered column of story links.
+- `slices`: ordered horizontal release bands; each names the story links it spans.
 
-#### Roadmap Board
+### Roadmap
+
 ```yaml
 ---
 agile-type: board
 board-type: roadmap
-timeline-unit: month  # or: week, quarter
+title: "2026 Roadmap"
+timeline-unit: month          # | week | quarter
 start-date: 2026-07-01
 end-date: 2026-12-31
-releases:
-  - "[[Release - v1.0.0]]"
-  - "[[Release - v1.1.0]]"
+releases:                     # ordered chronologically by target-date
+  - name: "v1.0.0 — Foundation"
+    target-date: 2026-07-15
+    items: ["[[View all boards]]", "[[Create card]]"]   # story/feature notes
+  - name: "v1.1.0 — Reuse"
+    target-date: 2026-09-30
+    items: ["[[Link card]]"]
 ---
 ```
+- `releases[]`: each has a `name`, optional `target-date`, and an ordered `items` array of links (story/feature notes reused from the Story Map).
+- Timeline range + unit drive horizontal positioning; releases render in date order.
 
-## State Transitions
+---
 
-### User Story Status
-```
-backlog → ready → in-progress → done
-```
+## Lifecycle Operations
 
-### Release Status
-```
-planned → in-progress → released
-```
+| Operation | Effect on board note (layout) | Effect on content note |
+|-----------|-------------------------------|------------------------|
+| Add post-it (new) | Append new `[[wikilink]]` to the section array | Create a new note in the configured folder |
+| Add post-it (existing) | Append `[[wikilink]]` to the section array | None (note unchanged) |
+| Reorder / move post-it | Reorder array / move link between section arrays | None |
+| Edit post-it | None | User edits the note's Markdown |
+| Remove post-it from board | Remove the `[[wikilink]]` from the array | None (note remains in vault) |
+| Delete note | Plugin reports it as a missing reference where still linked | Note deleted — only via a separate, explicitly confirmed action |
+| Rename / move note | Obsidian updates the wikilink in the layout automatically | Note path changes |
+
+**Data-safety rule**: the only destructive action the plugin performs on a content note is an explicit, confirmed delete the user initiates. Board edits are confined to the board note's frontmatter.
 
 ## Indexing Strategy
 
-The plugin maintains an in-memory index of all agile cards for fast lookups:
+The plugin keeps a lightweight in-memory index for fast re-render when notes change:
 
 ```typescript
-interface CardIndex {
-  byType: Map<CardType, Set<TFile>>;
-  byReference: Map<string, Set<TFile>>;  // cards that reference a given path
-  boards: Map<BoardType, Set<TFile>>;
+interface BoardIndex {
+  boards: Set<TFile>;                       // all notes with agile-type: board
+  referencedBy: Map<string, Set<TFile>>;    // note path → boards that reference it
 }
 ```
 
 **Rebuild triggers**:
-- Plugin load
-- File create/delete/rename events
-- Frontmatter modification (via MetadataCache)
+- Plugin load (scan for `agile-type: board` notes; parse their layouts).
+- Vault `create` / `delete` / `rename` events.
+- `MetadataCache` `changed` events on board notes (layout edited) and on referenced content notes (preview/title changed).
+
+The "link existing note" picker queries all vault notes (optionally scoped to the configured agile folder); no per-type index is required because content notes are untyped.
+
+## State Notes
+
+- There are no enforced state machines on content notes; any status the user wants (e.g., a story's progress) is plain Markdown in the note body, owned by the user.
+- There are no cross-board dependency constraints to enforce: boards reference notes, never other boards, so circular dependencies cannot arise. The VPC → Lean → Impact → Story → Roadmap order is a recommended authoring flow, surfaced as guidance, not a rule.

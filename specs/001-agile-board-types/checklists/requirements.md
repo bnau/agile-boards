@@ -33,5 +33,9 @@
 
 - All items pass validation
 - Specification is ready for `/speckit-clarify` or `/speckit-plan`
-- Card type dependencies are well-defined: VPC → Lean Canvas → Impact Map → Story Map → Roadmap
-- Shared card types clearly documented with creation and consumption relationships
+- Revised 2026-06-16 for the display-layer architecture: boards are presentation
+  layers over vault notes; each post-it is an ordinary note (one note per post-it);
+  a board note stores only the layout (ordered `[[wikilink]]` references per section)
+- Card "types" (Customer, Job, Impact, Release…) are documented as *section roles*
+  assigned by a board's layout, not as note schemas; notes are reused across boards
+  by reference, so there are no cross-board creation dependencies

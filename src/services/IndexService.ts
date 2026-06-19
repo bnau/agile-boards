@@ -1,61 +1,60 @@
-import { App, TFile } from 'obsidian';
-import { AgileCard, CardType } from '../types/Card';
-import { CardService } from './CardService';
+import { App, TFile, EventRef } from 'obsidian';
+import { BoardService } from './BoardService';
+import { ReferenceService } from './ReferenceService';
 
 type ChangeListener = () => void;
 
+/**
+ * Lightweight in-memory index of boards and which notes they reference.
+ * Used to answer "which boards display this note?" so open boards can re-render
+ * when a referenced note changes. Content notes are untyped, so there is no
+ * per-type index — the note picker searches the vault directly.
+ */
 export class IndexService {
-	private byType: Map<CardType, AgileCard[]> = new Map();
-	private byPath: Map<string, AgileCard> = new Map();
-	private listeners: Set<ChangeListener> = new Set();
-	private version = 0;
-	private typeCache: Map<CardType, { version: number; cards: AgileCard[] }> = new Map();
+	private boards = new Set<string>();
+	private referencedBy = new Map<string, Set<string>>(); // note path -> board paths
+	private listeners = new Set<ChangeListener>();
+	private metaRefs: EventRef[] = [];
+	private vaultRefs: EventRef[] = [];
 
-	constructor(private app: App, private cardService: CardService) {}
+	constructor(
+		private app: App,
+		private boardService: BoardService,
+		private referenceService: ReferenceService,
+	) {}
 
 	initialize(): void {
-		this.rebuildIndex();
+		this.rebuild();
 
-		this.app.vault.on('create', (file) => {
-			if (file instanceof TFile) this.onFileChange(file);
-		});
-		this.app.vault.on('modify', (file) => {
-			if (file instanceof TFile) this.onFileChange(file);
-		});
-		this.app.vault.on('delete', (file) => {
-			if (file instanceof TFile) this.onFileDelete(file);
-		});
-		this.app.vault.on('rename', (file, oldPath) => {
-			if (file instanceof TFile) {
-				this.byPath.delete(oldPath);
-				this.onFileChange(file);
-			}
-		});
-
-		// MetadataCache fires after frontmatter is parsed — more reliable for frontmatter edits
-		this.app.metadataCache.on('changed', (file) => {
-			this.onFileChange(file);
-		});
+		this.metaRefs.push(this.app.metadataCache.on('changed', (file) => this.onChange(file)));
+		this.metaRefs.push(this.app.metadataCache.on('resolved', () => this.rebuild()));
+		this.vaultRefs.push(this.app.vault.on('delete', (file) => {
+			if (file instanceof TFile) this.onDelete(file);
+		}));
+		this.vaultRefs.push(this.app.vault.on('rename', () => this.rebuild()));
 	}
 
 	destroy(): void {
+		this.metaRefs.forEach((ref) => this.app.metadataCache.offref(ref));
+		this.vaultRefs.forEach((ref) => this.app.vault.offref(ref));
+		this.metaRefs = [];
+		this.vaultRefs = [];
 		this.listeners.clear();
 	}
 
-	getCardsByType(type: CardType): AgileCard[] {
-		const cached = this.typeCache.get(type);
-		if (cached && cached.version === this.version) return cached.cards;
-		const cards = this.byType.get(type) ?? [];
-		this.typeCache.set(type, { version: this.version, cards });
-		return cards;
+	getAllBoards(): TFile[] {
+		return [...this.boards]
+			.map((p) => this.app.vault.getAbstractFileByPath(p))
+			.filter((f): f is TFile => f instanceof TFile);
 	}
 
-	getCardByPath(path: string): AgileCard | undefined {
-		return this.byPath.get(path);
-	}
-
-	getAllCards(): AgileCard[] {
-		return Array.from(this.byPath.values());
+	/** Board files that reference a given note path. */
+	findBoardsReferencing(notePath: string): TFile[] {
+		const set = this.referencedBy.get(notePath);
+		if (!set) return [];
+		return [...set]
+			.map((p) => this.app.vault.getAbstractFileByPath(p))
+			.filter((f): f is TFile => f instanceof TFile);
 	}
 
 	subscribe(listener: ChangeListener): () => void {
@@ -63,76 +62,37 @@ export class IndexService {
 		return () => this.listeners.delete(listener);
 	}
 
-	private rebuildIndex(): void {
-		this.byType.clear();
-		this.byPath.clear();
+	private onChange(file: TFile): void {
+		const wasBoard = this.boards.has(file.path);
+		const isBoard = this.boardService.parseBoard(file) !== null;
+		if (wasBoard || isBoard) {
+			this.rebuild();
+		}
+	}
 
-		for (const file of this.app.vault.getFiles()) {
-			this.indexFile(file);
+	private onDelete(file: TFile): void {
+		if (this.boards.has(file.path)) this.rebuild();
+	}
+
+	private rebuild(): void {
+		this.boards.clear();
+		this.referencedBy.clear();
+
+		for (const file of this.boardService.getAllBoards()) {
+			this.boards.add(file.path);
+			const board = this.boardService.parseBoard(file);
+			if (!board) continue;
+			for (const ref of this.boardService.extractRefs(board)) {
+				const dest = this.referenceService.resolve(ref, file.path);
+				if (!dest) continue;
+				if (!this.referencedBy.has(dest.path)) this.referencedBy.set(dest.path, new Set());
+				this.referencedBy.get(dest.path)!.add(file.path);
+			}
 		}
 		this.notify();
-	}
-
-	private onFileChange(file: TFile): void {
-		if (!file.extension.match(/^md$/i)) return;
-		this.indexFile(file);
-		this.notify();
-	}
-
-	private onFileDelete(file: TFile): void {
-		const existing = this.byPath.get(file.path);
-		if (existing) {
-			this.byPath.delete(file.path);
-			const typeList = this.byType.get(existing.agileType);
-			if (typeList) {
-				const idx = typeList.findIndex((c) => c.path === file.path);
-				if (idx !== -1) typeList.splice(idx, 1);
-			}
-			this.notify();
-		}
-	}
-
-	private indexFile(file: TFile): void {
-		const card = this.cardService.parseCard(file);
-		if (!card) {
-			// Remove from index if previously indexed (may have lost agile-type frontmatter)
-			const existing = this.byPath.get(file.path);
-			if (existing) {
-				this.byPath.delete(file.path);
-				const typeList = this.byType.get(existing.agileType);
-				if (typeList) {
-					const idx = typeList.findIndex((c) => c.path === file.path);
-					if (idx !== -1) typeList.splice(idx, 1);
-				}
-			}
-			return;
-		}
-
-		// Replace old entry for same path (type may have changed)
-		const old = this.byPath.get(file.path);
-		if (old && old.agileType !== card.agileType) {
-			const oldList = this.byType.get(old.agileType);
-			if (oldList) {
-				const idx = oldList.findIndex((c) => c.path === file.path);
-				if (idx !== -1) oldList.splice(idx, 1);
-			}
-		}
-
-		this.byPath.set(file.path, card);
-		if (!this.byType.has(card.agileType)) {
-			this.byType.set(card.agileType, []);
-		}
-		const typeList = this.byType.get(card.agileType)!;
-		const idx = typeList.findIndex((c) => c.path === file.path);
-		if (idx !== -1) {
-			typeList[idx] = card;
-		} else {
-			typeList.push(card);
-		}
 	}
 
 	private notify(): void {
-		this.version++;
 		this.listeners.forEach((l) => l());
 	}
 }

@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { StoryBoard as StoryBoardType, StoryRelease } from '../../types/Board';
-import { AgileCard, FeatureCard, UserStoryCard, MmfCard } from '../../types/Card';
-import { CardEditor } from '../common/CardEditor';
-import { ReferenceSelector } from '../common/ReferenceSelector';
-import { useCards } from '../../hooks/useCards';
+import { StoryBoard as StoryBoardType, StorySlice } from '../../types/Board';
+import { Section } from '../common/Section';
+import { PostIt } from '../common/PostIt';
+import { AddPostIt } from '../common/AddPostIt';
 import { useServices } from '../../context/AppContext';
-import { useApp } from '../../context/AppContext';
 
 interface StoryBoardProps {
 	board: StoryBoardType;
@@ -14,191 +12,97 @@ interface StoryBoardProps {
 }
 
 export const StoryBoard = ({ board, boardPath, onBoardUpdate }: StoryBoardProps) => {
-	const [creatingStory, setCreatingStory] = useState<string | null>(null); // featurePath
-	const [creatingMmf, setCreatingMmf] = useState(false);
-	const [draggedStory, setDraggedStory] = useState<string | null>(null);
+	const { referenceService } = useServices();
 
-	const features = useCards('feature') as FeatureCard[];
-	const allStories = useCards('user-story') as UserStoryCard[];
-	const mmfs = useCards('mmf') as MmfCard[];
-	const { cardService, indexService } = useServices();
-	const app = useApp();
+	const addBackbone = (ref: string) => onBoardUpdate({ backbone: [...board.backbone, ref] });
 
-	const backboneFeatures = board.backbone
-		.map((ref) => indexService.getCardByPath(ref) as FeatureCard | undefined)
-		.filter((f): f is FeatureCard => f !== undefined);
-
-	const unlinkedFeatures = features.filter((f) => !board.backbone.includes(f.path));
-
-	const storiesForFeature = (featurePath: string) =>
-		allStories.filter((s) => s.feature === featurePath || s.feature.includes(featurePath));
-
-	const storiesInMmf = (mmfCard: MmfCard) =>
-		mmfCard.stories.flatMap((ref) => {
-			const card = indexService.getCardByPath(ref);
-			return card ? [card as UserStoryCard] : [];
-		});
-
-	const handleAddFeatureToBackbone = async (card: AgileCard) => {
-		const backbone = [...board.backbone, card.path];
-		await onBoardUpdate({ backbone });
+	const removeBackbone = (i: number) => {
+		const ref = board.backbone[i];
+		const backbone = board.backbone.filter((_, idx) => idx !== i);
+		const stories = { ...board.stories };
+		delete stories[ref];
+		onBoardUpdate({ backbone, stories });
 	};
 
-	const handleRemoveFeature = async (path: string) => {
-		const backbone = board.backbone.filter((p) => p !== path);
-		await onBoardUpdate({ backbone });
+	const replaceBackbone = (i: number, next: string) => {
+		const old = board.backbone[i];
+		const backbone = board.backbone.map((r, idx) => (idx === i ? next : r));
+		const stories = { ...board.stories };
+		if (old in stories) { stories[next] = stories[old]; delete stories[old]; }
+		onBoardUpdate({ backbone, stories });
 	};
 
-	const handleCreateStory = async (title: string, fields: Record<string, unknown>) => {
-		if (!creatingStory) return;
-		const feature = backboneFeatures.find((f) => f.path === creatingStory);
-		await cardService.createCard('user-story', title, {
-			...fields,
-			feature: feature ? `[[${feature.title}]]` : '',
-		});
-		setCreatingStory(null);
+	const setColumn = (backboneRef: string, refs: string[]) => {
+		onBoardUpdate({ stories: { ...board.stories, [backboneRef]: refs } });
 	};
 
-	const handleCreateMmf = async (title: string, fields: Record<string, unknown>) => {
-		await cardService.createCard('mmf', title, fields);
-		setCreatingMmf(false);
-	};
-
-	const handleOpenCard = (card: AgileCard) => {
-		app.workspace.openLinkText(card.title, boardPath, false);
-	};
+	const updateSlices = (slices: StorySlice[]) => onBoardUpdate({ slices });
+	const addSlice = () => updateSlices([...board.slices, { name: `Release ${board.slices.length + 1}`, stories: [] }]);
+	const renameSlice = (i: number, name: string) => updateSlices(board.slices.map((s, idx) => (idx === i ? { ...s, name } : s)));
+	const removeSlice = (i: number) => updateSlices(board.slices.filter((_, idx) => idx !== i));
+	const setSliceStories = (i: number, refs: string[]) => updateSlices(board.slices.map((s, idx) => (idx === i ? { ...s, stories: refs } : s)));
 
 	return (
 		<div className="agile-story-board">
-			{/* Backbone row */}
+			{/* Backbone */}
 			<div className="agile-story-board__backbone">
 				<div className="agile-story-board__backbone-label">Backbone</div>
 				<div className="agile-story-board__backbone-features">
-					{backboneFeatures.map((feature) => (
-						<div key={feature.path} className="agile-story-feature">
-							<span
-								className="agile-story-feature__title"
-								onClick={() => handleOpenCard(feature)}
-								role="button"
-								tabIndex={0}
-								onKeyDown={(e) => e.key === 'Enter' && handleOpenCard(feature)}
-							>
-								{feature.title}
-							</span>
-							<button
-								className="agile-btn agile-btn--icon"
-								onClick={() => handleRemoveFeature(feature.path)}
-								title="Remove from backbone"
-							>
-								✕
-							</button>
+					{board.backbone.map((ref, i) => (
+						<div key={`${ref}-${i}`} className="agile-story-feature">
+							<PostIt
+								refStr={ref}
+								sourcePath={boardPath}
+								onRemove={() => removeBackbone(i)}
+								onReplace={(next) => replaceBackbone(i, next)}
+								compact
+							/>
 						</div>
 					))}
-					<ReferenceSelector
-						cardType="feature"
-						availableCards={unlinkedFeatures}
-						selectedPaths={board.backbone}
-						onSelect={handleAddFeatureToBackbone}
-						onDeselect={handleRemoveFeature}
-						multiSelect
-					/>
+					<AddPostIt sourcePath={boardPath} onAdd={addBackbone} label="+ Activity" />
 				</div>
 			</div>
 
-			{/* Story grid */}
+			{/* Story columns */}
 			<div className="agile-story-board__grid">
-				{backboneFeatures.map((feature) => {
-					const featureStories = storiesForFeature(feature.path);
-					return (
-						<div key={feature.path} className="agile-story-column">
-							{featureStories.map((story) => (
-								<div
-									key={story.path}
-									className={`agile-story-card agile-story-card--${story.status}`}
-									draggable
-									onDragStart={() => setDraggedStory(story.path)}
-									onDragEnd={() => setDraggedStory(null)}
-									onClick={() => handleOpenCard(story)}
-									role="button"
-									tabIndex={0}
-									onKeyDown={(e) => e.key === 'Enter' && handleOpenCard(story)}
-								>
-									<div className="agile-story-card__title">{story.title}</div>
-									{story.storyPoints !== undefined && (
-										<span className="agile-story-card__points">{story.storyPoints}pts</span>
-									)}
-									<span className={`agile-story-card__status agile-story-card__status--${story.status}`}>
-										{story.status}
-									</span>
-								</div>
-							))}
-							<button
-								className="agile-btn agile-btn--add"
-								onClick={() => setCreatingStory(feature.path)}
-							>
-								+ Story
-							</button>
-						</div>
-					);
-				})}
-			</div>
-
-			{/* MMF bands */}
-			<div className="agile-story-board__mmfs">
-				<h4>MMFs (Minimum Marketable Features)</h4>
-				{mmfs.map((mmf) => (
-					<div key={mmf.path} className="agile-mmf-band">
-						<div className="agile-mmf-band__header">
-							<span
-								className="agile-mmf-band__title"
-								onClick={() => handleOpenCard(mmf)}
-								role="button"
-								tabIndex={0}
-								onKeyDown={(e) => e.key === 'Enter' && handleOpenCard(mmf)}
-							>
-								{mmf.title}
-							</span>
-							{mmf.description && (
-								<span className="agile-mmf-band__description">{mmf.description}</span>
-							)}
-						</div>
-						<div className="agile-mmf-band__stories">
-							{storiesInMmf(mmf).map((story) => (
-								<div key={story.path} className="agile-mmf-band__story-chip">
-									{story.title}
-								</div>
-							))}
-						</div>
+				{board.backbone.map((ref, i) => (
+					<div key={`${ref}-${i}`} className="agile-story-column">
+						<div className="agile-story-column__head">{referenceService.label(ref)}</div>
+						<Section
+							refs={board.stories[ref] ?? []}
+							sourcePath={boardPath}
+							onChange={(refs) => setColumn(ref, refs)}
+							compact
+							addLabel="+ Story"
+						/>
 					</div>
 				))}
-				<button className="agile-btn agile-btn--add" onClick={() => setCreatingMmf(true)}>
-					+ MMF
-				</button>
 			</div>
 
-			{creatingStory && (
-				<div className="agile-overlay">
-					<div className="agile-overlay__content">
-						<CardEditor
-							cardType="user-story"
-							onSave={handleCreateStory}
-							onCancel={() => setCreatingStory(null)}
+			{/* Release slices */}
+			<div className="agile-story-board__mmfs">
+				<h4>Releases (slices)</h4>
+				{board.slices.map((slice, i) => (
+					<div key={i} className="agile-mmf-band">
+						<div className="agile-mmf-band__header">
+							<input
+								className="agile-field__input agile-mmf-band__name"
+								value={slice.name}
+								onChange={(e) => renameSlice(i, e.target.value)}
+							/>
+							<button className="agile-btn agile-btn--icon agile-btn--danger" onClick={() => removeSlice(i)} title="Remove slice">✕</button>
+						</div>
+						<Section
+							refs={slice.stories}
+							sourcePath={boardPath}
+							onChange={(refs) => setSliceStories(i, refs)}
+							compact
+							addLabel="+ Story"
 						/>
 					</div>
-				</div>
-			)}
-
-			{creatingMmf && (
-				<div className="agile-overlay">
-					<div className="agile-overlay__content">
-						<CardEditor
-							cardType="mmf"
-							onSave={handleCreateMmf}
-							onCancel={() => setCreatingMmf(false)}
-						/>
-					</div>
-				</div>
-			)}
+				))}
+				<button className="agile-btn agile-btn--add" onClick={addSlice}>+ Release slice</button>
+			</div>
 		</div>
 	);
 };

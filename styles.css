@@ -5,6 +5,68 @@
 	overflow: auto;
 }
 
+/* ===== Post-it (a content note rendered on a board) ===== */
+.agile-postit {
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-left: 3px solid var(--interactive-accent);
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	padding: var(--size-2-2) var(--size-2-3);
+}
+.agile-postit:hover { border-color: var(--interactive-accent); background: var(--background-modifier-hover); }
+.agile-postit__header { align-items: flex-start; display: flex; gap: var(--size-2-2); }
+.agile-postit__title { flex: 1; font-weight: var(--font-semibold); font-size: var(--font-smaller); }
+.agile-postit__preview {
+	color: var(--text-muted);
+	font-size: var(--font-smallest);
+	margin-top: var(--size-2-1);
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+}
+.agile-postit__remove { opacity: 0; transition: opacity 0.1s; }
+.agile-postit:hover .agile-postit__remove { opacity: 1; }
+.agile-postit--compact .agile-postit__preview { -webkit-line-clamp: 2; }
+
+/* ===== Section (ordered list of post-its for one slot) ===== */
+.agile-section { display: flex; flex-direction: column; gap: var(--size-2-1); }
+.agile-section__title {
+	color: var(--text-muted);
+	font-size: var(--font-smaller);
+	font-weight: var(--font-semibold);
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+}
+.agile-section__items { display: flex; flex-direction: column; gap: var(--size-2-1); }
+.agile-section__item { border-radius: var(--radius-s); }
+.agile-section__item--dragging { opacity: 0.5; }
+
+/* ===== Add post-it ===== */
+.agile-add-postit { display: flex; gap: var(--size-2-1); flex-wrap: wrap; margin-top: var(--size-2-1); }
+.agile-add-postit--editing { flex-direction: column; }
+.agile-add-postit__actions { display: flex; gap: var(--size-2-1); }
+
+/* ===== Missing note indicator ===== */
+.agile-missing-note {
+	align-items: center;
+	background: var(--background-modifier-error);
+	border: 1px dashed var(--text-error);
+	border-radius: var(--radius-s);
+	color: var(--text-error);
+	display: flex;
+	font-size: var(--font-smaller);
+	gap: var(--size-2-2);
+	padding: var(--size-2-1) var(--size-2-2);
+}
+.agile-missing-note__label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agile-missing-note__actions { display: flex; gap: var(--size-2-1); }
+
+.agile-vpc-panel__anchor { margin-bottom: var(--size-4-3); }
+.agile-story-column__head { color: var(--text-muted); font-size: var(--font-smallest); font-weight: var(--font-semibold); margin-bottom: var(--size-2-2); }
+.agile-mmf-band__name, .agile-roadmap-release__name { flex: 1; }
+
 .agile-boards-container h2 {
 	margin-top: 0;
 	margin-bottom: var(--size-4-4);

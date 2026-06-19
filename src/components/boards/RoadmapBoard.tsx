@@ -1,11 +1,5 @@
-import { useState } from 'react';
-import { RoadmapBoard as RoadmapBoardType } from '../../types/Board';
-import { AgileCard, ReleaseCard, MmfCard, UserStoryCard } from '../../types/Card';
-import { CardEditor } from '../common/CardEditor';
-import { ReferenceSelector } from '../common/ReferenceSelector';
-import { useCards } from '../../hooks/useCards';
-import { useServices } from '../../context/AppContext';
-import { useApp } from '../../context/AppContext';
+import { RoadmapBoard as RoadmapBoardType, RoadmapRelease, TimelineUnit } from '../../types/Board';
+import { Section } from '../common/Section';
 
 interface RoadmapBoardProps {
 	board: RoadmapBoardType;
@@ -14,68 +8,24 @@ interface RoadmapBoardProps {
 }
 
 export const RoadmapBoard = ({ board, boardPath, onBoardUpdate }: RoadmapBoardProps) => {
-	const [creatingRelease, setCreatingRelease] = useState(false);
-	const [editingDate, setEditingDate] = useState<string | null>(null);
-
-	const releases = useCards('release') as ReleaseCard[];
-	const mmfs = useCards('mmf') as MmfCard[];
-	const stories = useCards('user-story') as UserStoryCard[];
-	const { cardService, indexService } = useServices();
-	const app = useApp();
-
-	const boardReleases = board.releases
-		.map((ref) => {
-			const card = indexService.getCardByPath(ref);
-			return card as ReleaseCard | undefined;
-		})
-		.filter((r): r is ReleaseCard => r !== undefined)
+	// Display releases chronologically without mutating stored order.
+	const ordered = board.releases
+		.map((r, index) => ({ r, index }))
 		.sort((a, b) => {
-			if (!a.targetDate && !b.targetDate) return 0;
-			if (!a.targetDate) return 1;
-			if (!b.targetDate) return -1;
-			return a.targetDate.localeCompare(b.targetDate);
+			const da = a.r.targetDate, db = b.r.targetDate;
+			if (!da && !db) return 0;
+			if (!da) return 1;
+			if (!db) return -1;
+			return da.localeCompare(db);
 		});
 
-	const unlinkedReleases = releases.filter((r) => !board.releases.includes(r.path));
-
-	const handleCreateRelease = async (title: string, fields: Record<string, unknown>) => {
-		const file = await cardService.createCard('release', title, fields);
-		const updatedReleases = [...board.releases, file.path];
-		await onBoardUpdate({ releases: updatedReleases });
-		setCreatingRelease(false);
+	const updateRelease = (index: number, patch: Partial<RoadmapRelease>) => {
+		onBoardUpdate({ releases: board.releases.map((r, i) => (i === index ? { ...r, ...patch } : r)) });
 	};
-
-	const handleLinkRelease = async (card: AgileCard) => {
-		const updatedReleases = [...board.releases, card.path];
-		await onBoardUpdate({ releases: updatedReleases });
-	};
-
-	const handleUnlinkRelease = async (path: string) => {
-		const updatedReleases = board.releases.filter((p) => p !== path);
-		await onBoardUpdate({ releases: updatedReleases });
-	};
-
-	const handleSetDate = async (releasePath: string, date: string) => {
-		const f = app.vault.getFiles().find((f) => f.path === releasePath);
-		if (f) await cardService.updateCard(f, { 'target-date': date });
-		setEditingDate(null);
-	};
-
-	const handleOpenCard = (card: AgileCard) => {
-		app.workspace.openLinkText(card.title, boardPath, false);
-	};
-
-	const getReleaseMmfs = (release: ReleaseCard): MmfCard[] =>
-		release.mmfs.flatMap((ref) => {
-			const card = indexService.getCardByPath(ref);
-			return card ? [card as MmfCard] : [];
-		});
-
-	const getReleaseStories = (release: ReleaseCard): UserStoryCard[] =>
-		release.stories.flatMap((ref) => {
-			const card = indexService.getCardByPath(ref);
-			return card ? [card as UserStoryCard] : [];
-		});
+	const addRelease = () =>
+		onBoardUpdate({ releases: [...board.releases, { name: `Release ${board.releases.length + 1}`, items: [] }] });
+	const removeRelease = (index: number) =>
+		onBoardUpdate({ releases: board.releases.filter((_, i) => i !== index) });
 
 	return (
 		<div className="agile-roadmap-board">
@@ -87,118 +37,64 @@ export const RoadmapBoard = ({ board, boardPath, onBoardUpdate }: RoadmapBoardPr
 						<select
 							className="agile-field__select"
 							value={board.timelineUnit}
-							onChange={(e) => onBoardUpdate({ timelineUnit: e.target.value as 'week' | 'month' | 'quarter' })}
+							onChange={(e) => onBoardUpdate({ timelineUnit: e.target.value as TimelineUnit })}
 						>
 							<option value="week">Week</option>
 							<option value="month">Month</option>
 							<option value="quarter">Quarter</option>
 						</select>
 					</label>
+					<label className="agile-field agile-field--inline">
+						<span className="agile-field__label">From:</span>
+						<input type="date" value={board.startDate ?? ''} onChange={(e) => onBoardUpdate({ startDate: e.target.value || undefined })} />
+					</label>
+					<label className="agile-field agile-field--inline">
+						<span className="agile-field__label">To:</span>
+						<input type="date" value={board.endDate ?? ''} onChange={(e) => onBoardUpdate({ endDate: e.target.value || undefined })} />
+					</label>
 				</div>
 			</div>
 
 			<div className="agile-roadmap-releases">
-				{boardReleases.map((release) => (
-					<div key={release.path} className={`agile-roadmap-release agile-roadmap-release--${release.status ?? 'planned'}`}>
+				{ordered.map(({ r, index }) => (
+					<div key={index} className="agile-roadmap-release">
 						<div className="agile-roadmap-release__header">
-							<span
-								className="agile-roadmap-release__title"
-								onClick={() => handleOpenCard(release)}
-								role="button"
-								tabIndex={0}
-								onKeyDown={(e) => e.key === 'Enter' && handleOpenCard(release)}
-							>
-								{release.title}
-								{release.version && <span className="agile-roadmap-release__version">{release.version}</span>}
-							</span>
+							<input
+								className="agile-field__input agile-roadmap-release__name"
+								value={r.name}
+								onChange={(e) => updateRelease(index, { name: e.target.value })}
+							/>
 							<div className="agile-roadmap-release__date">
-								{editingDate === release.path ? (
-									<input
-										type="date"
-										defaultValue={release.targetDate ?? ''}
-										onBlur={(e) => handleSetDate(release.path, e.target.value)}
-										autoFocus
-									/>
-								) : (
-									<span
-										className="agile-roadmap-release__date-value"
-										onClick={() => setEditingDate(release.path)}
-										role="button"
-										tabIndex={0}
-										onKeyDown={(e) => e.key === 'Enter' && setEditingDate(release.path)}
-									>
-										{release.targetDate ? `📅 ${release.targetDate}` : 'Set date'}
-									</span>
-								)}
+								<input
+									type="date"
+									value={r.targetDate ?? ''}
+									onChange={(e) => updateRelease(index, { targetDate: e.target.value || undefined })}
+								/>
 							</div>
-							<span className={`agile-roadmap-release__status agile-roadmap-release__status--${release.status ?? 'planned'}`}>
-								{release.status ?? 'planned'}
-							</span>
 							<button
-								className="agile-btn agile-btn--icon"
-								onClick={() => handleUnlinkRelease(release.path)}
-								title="Remove release from roadmap"
+								className="agile-btn agile-btn--icon agile-btn--danger"
+								onClick={() => removeRelease(index)}
+								title="Remove release"
 							>
 								✕
 							</button>
 						</div>
 						<div className="agile-roadmap-release__items">
-							{getReleaseMmfs(release).map((mmf) => (
-								<div key={mmf.path} className="agile-roadmap-item agile-roadmap-item--mmf">
-									<span className="agile-roadmap-item__badge">MMF</span>
-									<span
-										className="agile-roadmap-item__title"
-										onClick={() => handleOpenCard(mmf)}
-										role="button"
-										tabIndex={0}
-										onKeyDown={(e) => e.key === 'Enter' && handleOpenCard(mmf)}
-									>
-										{mmf.title}
-									</span>
-								</div>
-							))}
-							{getReleaseStories(release).map((story) => (
-								<div key={story.path} className="agile-roadmap-item agile-roadmap-item--story">
-									<span className="agile-roadmap-item__badge">US</span>
-									<span
-										className="agile-roadmap-item__title"
-										onClick={() => handleOpenCard(story)}
-										role="button"
-										tabIndex={0}
-										onKeyDown={(e) => e.key === 'Enter' && handleOpenCard(story)}
-									>
-										{story.title}
-									</span>
-								</div>
-							))}
+							<Section
+								refs={r.items}
+								sourcePath={boardPath}
+								onChange={(items) => updateRelease(index, { items })}
+								compact
+								addLabel="+ Item"
+							/>
 						</div>
 					</div>
 				))}
 			</div>
 
 			<div className="agile-roadmap-board__add-release">
-				<ReferenceSelector
-					cardType="release"
-					availableCards={unlinkedReleases}
-					selectedPaths={board.releases}
-					onSelect={handleLinkRelease}
-					onDeselect={handleUnlinkRelease}
-					onCreateNew={() => setCreatingRelease(true)}
-					multiSelect
-				/>
+				<button className="agile-btn agile-btn--add" onClick={addRelease}>+ Release</button>
 			</div>
-
-			{creatingRelease && (
-				<div className="agile-overlay">
-					<div className="agile-overlay__content">
-						<CardEditor
-							cardType="release"
-							onSave={handleCreateRelease}
-							onCancel={() => setCreatingRelease(false)}
-						/>
-					</div>
-				</div>
-			)}
 		</div>
 	);
 };

@@ -36,6 +36,7 @@ const LeanViewContent = ({ boardPath }: { boardPath: string }) => {
 			<h2>{board.title}</h2>
 			<LeanBoard
 				board={board as LeanBoardType}
+				boardPath={boardPath}
 				onBoardUpdate={(updates) => updateBoard(updates as Partial<LeanBoardType>)}
 			/>
 		</div>

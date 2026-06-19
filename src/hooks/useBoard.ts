@@ -3,6 +3,11 @@ import { TFile } from 'obsidian';
 import { AgileBoard } from '../types/Board';
 import { useApp, useServices } from '../context/AppContext';
 
+/**
+ * Load a board's layout from its note and expose typed mutations. Re-reads when
+ * the board note changes (vault modify or metadata cache update) so hand-edits
+ * to the frontmatter are reflected.
+ */
 export function useBoard(boardPath: string): {
 	board: AgileBoard | null;
 	boardFile: TFile | null;
@@ -32,10 +37,16 @@ export function useBoard(boardPath: string): {
 
 	useEffect(() => {
 		refreshBoard();
-		const ref = app.vault.on('modify', (file) => {
+		const modifyRef = app.vault.on('modify', (file) => {
 			if (file instanceof TFile && file.path === boardPath) refreshBoard();
 		});
-		return () => app.vault.offref(ref);
+		const metaRef = app.metadataCache.on('changed', (file) => {
+			if (file.path === boardPath) refreshBoard();
+		});
+		return () => {
+			app.vault.offref(modifyRef);
+			app.metadataCache.offref(metaRef);
+		};
 	}, [app, boardPath, refreshBoard]);
 
 	const updateBoard = useCallback(async (updates: Partial<AgileBoard>) => {
