@@ -40,6 +40,8 @@
 }
 .agile-postit__remove { opacity: 0; transition: opacity 0.1s; }
 .agile-postit:hover .agile-postit__remove { opacity: 1; }
+.agile-postit__open { opacity: 0; transition: opacity 0.1s; }
+.agile-postit:hover .agile-postit__open { opacity: 1; }
 .agile-postit--compact .agile-postit__preview { -webkit-line-clamp: 2; }
 
 /* ===== Section (ordered list of post-its for one slot) ===== */

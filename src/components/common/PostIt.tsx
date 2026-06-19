@@ -23,7 +23,7 @@ interface PostItProps {
 /**
  * Renders one content note as a post-it: title + body preview. The title is the
  * note's file name; clicking the post-it edits it inline (renaming the file),
- * while Ctrl/Cmd-click opens the underlying note. A missing reference renders a
+ * while a hover button opens the underlying note. A missing reference renders a
  * non-destructive indicator with relink / quick-create.
  */
 export const PostIt = ({ refStr, sourcePath, onRemove, onReplace, compact, cardType, linkTypes }: PostItProps) => {
@@ -83,11 +83,11 @@ export const PostIt = ({ refStr, sourcePath, onRemove, onReplace, compact, cardT
 	return (
 		<div
 			className={`agile-postit ${compact ? 'agile-postit--compact' : ''}`}
-			onClick={(e) => { if (e.ctrlKey || e.metaKey) open(true); else if (!editing) startEdit(); }}
+			onClick={() => { if (!editing) startEdit(); }}
 			role="button"
 			tabIndex={0}
 			onKeyDown={(e) => { if (!editing && e.key === 'Enter') startEdit(); }}
-			title="Click to rename · Ctrl/Cmd+click to open"
+			title="Click to rename"
 		>
 			<div className="agile-postit__header">
 				{editing ? (
@@ -106,6 +106,15 @@ export const PostIt = ({ refStr, sourcePath, onRemove, onReplace, compact, cardT
 					/>
 				) : (
 					<span className="agile-postit__title">{loading ? '…' : title}</span>
+				)}
+				{!editing && (
+					<button
+						className="agile-btn agile-btn--icon agile-postit__open"
+						onClick={(e) => { e.stopPropagation(); open(true); }}
+						title="Open note in a new tab"
+					>
+						↗
+					</button>
 				)}
 				{onRemove && !editing && (
 					<button
