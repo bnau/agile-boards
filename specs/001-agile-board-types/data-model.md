@@ -154,23 +154,27 @@ sections:
 agile-type: board
 board-type: impact-map
 title: "Goals 2026"
-goal: "[[Increase team productivity]]"     # the single Why (root)
-actors:                                    # Who → How → What tree
-  - actor: "[[Enterprise]]"                # reused customer note
-    impacts:
-      - impact: "[[Reduce context switching]]"
-        deliverables: ["[[Unified board view]]", "[[Quick switcher]]"]
-      - impact: "[[Faster planning]]"
-        deliverables: ["[[Inline editing]]"]
-  - actor: "[[SMB]]"
-    impacts: []
+goals:                                     # one or more independent goal trees
+  - goal: "[[Increase team productivity]]" # the Why (root of this tree)
+    actors:                                # Who → How → What tree
+      - actor: "[[Enterprise]]"            # reused customer note
+        impacts:
+          - impact: "[[Reduce context switching]]"
+            deliverables: ["[[Unified board view]]", "[[Quick switcher]]"]
+          - impact: "[[Faster planning]]"
+            deliverables: ["[[Inline editing]]"]
+      - actor: "[[SMB]]"
+        impacts: []
+  - goal: "[[Grow revenue]]"               # a second, independent goal tree
+    actors: []
 layout: horizontal          # | vertical
 collapsed: ["[[SMB]]"]      # branches the user collapsed
 ---
 ```
-- `goal`: single link (root of the tree).
-- `actors[]` → `impacts[]` → `deliverables[]`: nested arrays of links expressing the Who/How/What hierarchy.
-- `deliverables` (Feature notes) are commonly reused as the Story Map backbone.
+- `goals[]`: list of independent goal trees; each has its own `goal` link (root) and `actors`.
+- `actors[]` → `impacts[]` → `deliverables[]`: nested arrays of links expressing the Who/How/What hierarchy under each goal.
+- `deliverables` (Feature notes) are imported into the Story Map's MMFs.
+- *Migration*: a legacy single `goal` + top-level `actors` is read as a one-element `goals` list.
 
 ### Story Map
 
@@ -179,20 +183,21 @@ collapsed: ["[[SMB]]"]      # branches the user collapsed
 agile-type: board
 board-type: story-map
 title: "Product Backlog"
-backbone: ["[[Unified board view]]", "[[Card management]]"]   # ordered activities/features
-stories:                       # one column of stacked story notes per backbone item
-  "[[Unified board view]]": ["[[View all boards]]", "[[Switch boards]]"]
-  "[[Card management]]":     ["[[Create card]]", "[[Link card]]", "[[Move card]]"]
-slices:                        # horizontal release bands (walking skeleton first)
-  - name: "Release 1 (walking skeleton)"
-    stories: ["[[View all boards]]", "[[Create card]]"]
-  - name: "Release 2"
-    stories: ["[[Switch boards]]", "[[Link card]]"]
+impact-map: "[[Goals 2026]]"   # source Impact Map board features are imported from
+mmfs:                          # marketable feature groupings; a feature is in at most one MMF
+  - name: "MMF 1"
+    features: ["[[Unified board view]]", "[[Quick switcher]]"]
+  - name: "MMF 2"
+    features: ["[[Inline editing]]"]
+stories:                       # user stories per table cell, keyed by the feature's note path
+  "Agile/Cards/Unified board view.md": ["[[View all boards]]", "[[Switch boards]]"]
+  "Agile/Cards/Inline editing.md":     ["[[Edit card title]]"]
 ---
 ```
-- `backbone`: ordered links (top row), commonly reusing Impact Map deliverables.
-- `stories`: map from a backbone link to its ordered column of story links.
-- `slices`: ordered horizontal release bands; each names the story links it spans.
+- `impact-map`: link to the source Impact Map board. Its deliverables become importable features.
+- `mmfs[]`: named groupings of imported features. Each feature (Impact Map deliverable) belongs to at most one MMF.
+- `stories`: map from a feature's resolved note path (the table cell's stable identity) to the ordered user-story links authored in that cell.
+- The table (actor columns × feature sub-columns over impact rows) is derived from the source Impact Map at render time and is not stored. The Story Map defines no releases.
 
 ### Roadmap
 

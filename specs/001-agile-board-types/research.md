@@ -87,10 +87,10 @@ The 9-box grid:
 ```
 
 ### Impact Mapping (Gojko Adzic)
-Tree, four levels — Why (Goal, single root) → Who (Actors) → How (Impacts, behaviour changes) → What (Deliverables/Features). Rendered left-to-right or top-to-bottom with expand/collapse per branch.
+One or more independent goal trees, four levels each — Why (Goal, the root of each tree) → Who (Actors) → How (Impacts, behaviour changes) → What (Deliverables/Features). Rendered left-to-right or top-to-bottom with expand/collapse per branch.
 
 ### Story Mapping (Jeff Patton)
-Backbone of activities/features across the top in left-to-right narrative order; story notes stacked below each backbone item (prioritized top-to-bottom); horizontal slices across the map become releases (first slice = walking skeleton).
+Linked to a source Impact Map. Features (the Impact Map's Deliverables) are imported into MMFs (Minimum Marketable Features), each feature belonging to at most one MMF. A table is derived from the Impact Map — one column per actor, one sub-column per imported feature, one row per impact — and each feature's cell (its own actor/impact intersection) holds the user-story notes authored there. No releases.
 
 ### Roadmap
 Horizontal time axis (week/month/quarter). Releases positioned by target date; each release holds the story/feature notes assigned to it. Ordered chronologically.

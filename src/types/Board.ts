@@ -108,16 +108,17 @@ export interface ImpactBoard extends BaseBoard {
 
 /* ===== Story Map ===== */
 
-export interface StorySlice {
+export interface MMF {
 	name: string;
-	stories: Ref[];       // story notes spanned by this release band
+	features: Ref[];      // impact-map deliverables imported into this MMF.
+	                      // A feature appears in at most one MMF across the board.
 }
 
 export interface StoryBoard extends BaseBoard {
 	boardType: 'story-map';
-	backbone: Ref[];                 // ordered activity/feature notes (top row)
-	stories: Record<string, Ref[]>;  // backbone ref -> ordered column of story notes
-	slices: StorySlice[];            // horizontal release bands
+	impactMap?: Ref;                 // source impact-map board the features are imported from
+	mmfs: MMF[];                     // marketable feature groupings
+	stories: Record<string, Ref[]>;  // feature ref -> user stories created in that cell
 }
 
 /* ===== Roadmap ===== */

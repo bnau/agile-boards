@@ -22,8 +22,8 @@ The five frameworks differ only in how they arrange the referenced notes:
 |-------|--------|--------------------|
 | Value Proposition Canvas | Strategyzer | Customer Profile (Jobs / Pains / Gains) ↔ Value Map (Products & Services / Pain Relievers / Gain Creators), per customer segment |
 | Lean Canvas | Ash Maurya | 9-box grid (Problem, Solution, Key Metrics, UVP, Unfair Advantage, Channels, Customer Segments, Cost Structure, Revenue Streams) |
-| Impact Mapping | Gojko Adzic | Tree: Goal (Why) → Actors (Who) → Impacts (How) → Deliverables (What) |
-| Story Mapping | Jeff Patton | Backbone of activities/features across the top, stories stacked below, horizontal release slices |
+| Impact Mapping | Gojko Adzic | One or more independent goal trees: each Goal (Why) → Actors (Who) → Impacts (How) → Deliverables (What) |
+| Story Mapping | Jeff Patton | MMFs grouping imported impact-map features, plus a table (actor columns × feature sub-columns over impact rows) whose cells hold user stories |
 | Roadmap | — | Timeline with releases positioned over time, holding stories/features |
 
 ## User Scenarios & Testing *(mandatory)*
@@ -65,33 +65,35 @@ As an entrepreneur, I want a 9-box Lean Canvas that arranges vault notes, reusin
 
 ### User Story 3 - Display notes on an Impact Map (Priority: P3)
 
-As a product manager, I want an Impact Map tree that arranges notes from Goal → Actors → Impacts → Deliverables, reusing my customer notes as Actors, so that I can trace business goals to features.
+As a product manager, I want one or more Impact Map goal trees that arrange notes from Goal → Actors → Impacts → Deliverables, reusing my customer notes as Actors, so that I can trace several business goals to features.
 
 **Why this priority**: Impact Mapping introduces a hierarchical (tree) arrangement and shows anchor-note reuse (Customers as Actors) feeding deliverable notes that the Story Map will reuse.
 
-**Independent Test**: Create an Impact Map, set a Goal note, link customer notes as Actors, branch Impact notes under each Actor and Deliverable (Feature) notes under each Impact; verify the tree renders and the parent/child arrangement persists.
+**Independent Test**: Create an Impact Map, add multiple Goal notes, link customer notes as Actors under each Goal, branch Impact notes under each Actor and Deliverable (Feature) notes under each Impact; verify each goal tree renders independently and the parent/child arrangement persists.
 
 **Acceptance Scenarios**:
 
-1. **Given** existing customer notes, **When** I add Actors, **Then** I can link those notes as the Who level of the tree
-2. **Given** a Goal and an Actor, **When** I branch an Impact, **Then** a new note is created and placed as a child of that Actor in the layout
-3. **Given** an Impact, **When** I add Deliverables, **Then** Feature notes are created/linked as children, and I can expand/collapse branches
+1. **Given** an Impact Map, **When** I add a Goal, **Then** a new independent goal tree (with its own Actors) appears, and I can add as many goals as I need
+2. **Given** existing customer notes, **When** I add Actors under a Goal, **Then** I can link those notes as the Who level of that goal's tree
+3. **Given** a Goal and an Actor, **When** I branch an Impact, **Then** a new note is created and placed as a child of that Actor in the layout
+4. **Given** an Impact, **When** I add Deliverables, **Then** Feature notes are created/linked as children, and I can expand/collapse branches
 
 ---
 
 ### User Story 4 - Display notes on a Story Map (Priority: P4)
 
-As a development team lead, I want a Story Map whose backbone reuses my Feature notes, with user-story notes stacked below and grouped into horizontal release slices, so that I can organize delivery.
+As a development team lead, I want a Story Map that links to an Impact Map, lets me group its features into MMFs (Minimum Marketable Features), and shows a table whose cells hold the user stories for each feature, so that I can organize delivery without re-entering data.
 
-**Why this priority**: Story Mapping introduces a two-axis arrangement (backbone × stacked stories) and horizontal slicing into releases, reusing Feature notes from the Impact Map.
+**Why this priority**: Story Mapping reuses Feature notes from the Impact Map and adds delivery grouping (MMFs) plus a derived table that traces each feature back to its actor and impact, where user-story notes are authored. The Story Map does not define releases.
 
-**Independent Test**: Create a Story Map, link Feature notes as the backbone, add user-story notes in columns under each, and group rows into release slices; verify the grid and slices persist.
+**Independent Test**: Create a Story Map, select a source Impact Map, create MMFs, import features into them, and verify the table (one column per actor, one sub-column per feature, one row per impact) builds automatically and that user stories added in a cell persist.
 
 **Acceptance Scenarios**:
 
-1. **Given** existing Feature notes, **When** I build the backbone, **Then** those notes form the top row in left-to-right order
-2. **Given** a backbone column, **When** I add user stories, **Then** new notes are created and stacked under that backbone item
-3. **Given** stacked stories, **When** I draw a horizontal slice, **Then** a release grouping is recorded in the layout spanning the stories above the line
+1. **Given** a Story Map, **When** I select a source Impact Map, **Then** that map's deliverables become importable as features
+2. **Given** an MMF, **When** I import a feature from the Impact Map, **Then** it is added to that MMF and is no longer offered for import elsewhere (a feature belongs to at most one MMF)
+3. **Given** features imported into MMFs, **When** I view the table, **Then** each feature appears under its actor column on its impact row, built automatically from the Impact Map
+4. **Given** a table cell, **When** I add a user story, **Then** a new note is created/linked in that cell and persists in the layout
 
 ---
 
@@ -135,8 +137,8 @@ As a product owner, I want a Roadmap timeline that places release groupings (and
 - **FR-010**: Removing a post-it from a board MUST remove only the reference from the layout and MUST NOT delete the underlying note; deleting the note MUST be a separate, explicitly confirmed action
 - **FR-011**: Value Proposition Canvas MUST arrange notes into per-segment Customer Profile (Jobs, Pains, Gains) and Value Map (Products/Services, Pain Relievers, Gain Creators) sections
 - **FR-012**: Lean Canvas MUST arrange notes into the 9 boxes: Problem, Solution, Key Metrics, Unique Value Proposition, Unfair Advantage, Channels, Customer Segments, Cost Structure, Revenue Streams
-- **FR-013**: Impact Mapping MUST arrange notes into a Goal → Actors → Impacts → Deliverables tree with expand/collapse
-- **FR-014**: Story Map MUST arrange notes as a backbone (top row, ordered) with stacked story notes below each backbone item and horizontal release slices
+- **FR-013**: Impact Mapping MUST arrange notes into one or more independent goal trees, each Goal → Actors → Impacts → Deliverables, with expand/collapse; users MUST be able to add and remove goals
+- **FR-014**: Story Map MUST link to a source Impact Map, let users group its imported feature (Deliverable) notes into MMFs — each feature belonging to at most one MMF — and present a table (one column per actor, one sub-column per imported feature, one row per impact) built automatically from the Impact Map, whose cells hold user-story notes. The Story Map MUST NOT define releases.
 - **FR-015**: Roadmap MUST arrange release groupings (and the notes they contain) along a time axis with target dates, ordered chronologically
 - **FR-016**: System MUST display a visual indicator when a referenced note is missing (deleted or unresolved) and MUST offer re-link or quick-create
 - **FR-017**: Board layouts MUST persist across sessions by virtue of being stored in the board note's frontmatter
@@ -145,8 +147,9 @@ As a product owner, I want a Roadmap timeline that places release groupings (and
 ### Key Entities
 
 - **Content Note**: Any ordinary Markdown note in the vault. Serves as a post-it on one or more boards. Has a title (filename / first heading) and a Markdown body. Carries no required plugin metadata.
-- **Board Note**: A note identifying itself as a board (`agile-type: board`, `board-type: <type>`) whose frontmatter encodes the framework layout — the ordered references to content notes per section/slot, plus board-type-specific arrangement data (e.g., customer segments, release slices, timeline range, target dates).
-- **Section / Slot**: A named region of a board's framework (e.g., "Jobs", "Problem", "Backbone", a tree node, a release column) that holds an ordered list of references to content notes. Defines the *role* a note plays while displayed there.
+- **Board Note**: A note identifying itself as a board (`agile-type: board`, `board-type: <type>`) whose frontmatter encodes the framework layout — the ordered references to content notes per section/slot, plus board-type-specific arrangement data (e.g., customer segments, impact goals, MMFs, a source impact-map link, timeline range, target dates).
+- **Section / Slot**: A named region of a board's framework (e.g., "Jobs", "Problem", a goal tree node, an MMF, a table cell, a release column) that holds an ordered list of references to content notes. Defines the *role* a note plays while displayed there.
+- **MMF (Minimum Marketable Feature)**: A named grouping on a Story Map of features imported from its source Impact Map. Each imported feature belongs to at most one MMF.
 - **Reference**: A standard `[[wikilink]]` from a board layout to a content note. Resolved at render time; may be reported missing if unresolved.
 
 ## Success Criteria *(mandatory)*

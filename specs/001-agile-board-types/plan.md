@@ -81,8 +81,8 @@ src/
 │   └── boards/
 │       ├── VPCBoard.tsx          # Two-panel segments layout
 │       ├── LeanBoard.tsx         # 9-box grid layout
-│       ├── ImpactBoard.tsx       # Goal → Actor → Impact → Deliverable tree
-│       ├── StoryBoard.tsx        # Backbone + stacked stories + release slices
+│       ├── ImpactBoard.tsx       # Multiple Goal → Actor → Impact → Deliverable trees
+│       ├── StoryBoard.tsx        # MMFs + impact-derived actor/feature/impact table of user stories
 │       └── RoadmapBoard.tsx      # Timeline of releases
 ├── services/
 │   ├── NoteService.ts            # Create content notes; read title + body preview; (explicit) delete
@@ -128,13 +128,13 @@ src/
 - `LeanCanvasView` + command registration
 
 ### Phase 4: Impact Mapping
-- `ImpactBoard` Goal → Actor → Impact → Deliverable tree with expand/collapse
+- `ImpactBoard` one or more Goal → Actor → Impact → Deliverable trees with expand/collapse; add/remove goals
 - Actor slots reuse existing customer/segment notes
 - `ImpactMapView` + command registration
 
 ### Phase 5: Story Map
-- `StoryBoard` backbone + stacked story columns + horizontal release slices
-- Backbone reuses Feature notes; native HTML5 DnD for reordering
+- `StoryBoard` links a source Impact Map; MMFs group imported features (each feature in at most one MMF)
+- Derived table (actor columns × feature sub-columns over impact rows) built from the Impact Map; cells hold user-story notes; no releases
 - `StoryMapView` + command registration
 
 ### Phase 6: Roadmap

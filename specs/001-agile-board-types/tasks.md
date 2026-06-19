@@ -114,6 +114,8 @@
 
 **Checkpoint**: Impact Map functional — Why/Who/How/What tree of reused + new notes
 
+> **Rework (post-implementation)**: The Impact Map now supports **multiple independent goal trees** (`goals[]`) instead of a single root `goal`. Legacy single-goal frontmatter is migrated to a one-element `goals` list on read. See updated spec.md / data-model.md.
+
 ---
 
 ## Phase 6: User Story 4 — Story Map (Priority: P4)
@@ -121,6 +123,8 @@
 **Goal**: Display notes as a backbone with stacked story columns and horizontal release slices, reusing Feature notes as the backbone.
 
 **Independent Test**: Create a Story Map, link Feature notes as the backbone, add story post-its in columns, draw release slices, reload and confirm grid + slices persist.
+
+> **Rework (post-implementation)**: The Story Map was redesigned. It no longer uses a backbone, story columns, or release slices. It now links to a **source Impact Map**, groups imported features into **MMFs** (each feature in at most one MMF), and renders a **derived table** (actor columns × feature sub-columns over impact rows) whose cells hold user stories. See updated spec.md / data-model.md. T037–T041 below describe the original design.
 
 ### Implementation for User Story 4
 

@@ -379,6 +379,25 @@
 .agile-mmf-band__stories { display: flex; flex-wrap: wrap; gap: var(--size-2-1); }
 .agile-mmf-band__story-chip { background: var(--background-primary); border: 1px solid var(--background-modifier-border); border-radius: var(--radius-s); font-size: var(--font-smallest); padding: 1px var(--size-2-2); }
 
+/* Story map (MMF + impact-derived user-story table) */
+.agile-story-source { align-items: center; display: flex; gap: var(--size-2-2); flex-wrap: wrap; }
+.agile-story-source__label { color: var(--text-muted); font-size: var(--font-smallest); font-weight: var(--font-semibold); text-transform: uppercase; }
+.agile-story-source__select { min-width: 200px; }
+.agile-story-source__warn { color: var(--text-error); font-size: var(--font-smaller); }
+.agile-story-mmfs { display: flex; flex-direction: column; gap: var(--size-2-2); }
+.agile-mmf { background: var(--background-secondary); border-radius: var(--radius-m); padding: var(--size-4-2); }
+.agile-mmf__header { align-items: center; display: flex; gap: var(--size-2-2); margin-bottom: var(--size-2-2); }
+.agile-mmf__name { flex: 1; font-weight: var(--font-semibold); }
+.agile-mmf__features { align-items: center; display: flex; flex-wrap: wrap; gap: var(--size-2-2); }
+.agile-story-table-wrap { display: flex; flex-direction: column; gap: var(--size-2-2); overflow-x: auto; }
+.agile-story-table { border-collapse: collapse; width: 100%; }
+.agile-story-table th, .agile-story-table td { border: 1px solid var(--background-modifier-border); padding: var(--size-2-2); vertical-align: top; }
+.agile-story-table__corner { background: var(--background-secondary); color: var(--text-muted); font-size: var(--font-smallest); }
+.agile-story-table__actor { background: var(--interactive-accent); color: var(--text-on-accent); text-align: center; }
+.agile-story-table__feature { background: var(--background-secondary); font-size: var(--font-smaller); text-align: center; }
+.agile-story-table__impact { background: var(--background-secondary); font-size: var(--font-smaller); text-align: left; white-space: nowrap; }
+.agile-story-table__cell { min-width: 160px; }
+
 /* ===== Roadmap ===== */
 .agile-roadmap-board { display: flex; flex-direction: column; gap: var(--size-4-4); }
 .agile-roadmap-board__header { align-items: center; display: flex; gap: var(--size-4-3); }

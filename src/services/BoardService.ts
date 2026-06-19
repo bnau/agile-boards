@@ -2,7 +2,7 @@ import { App, TFile, stringifyYaml, parseYaml } from 'obsidian';
 import {
 	AgileBoard, BoardType, Ref,
 	VPCBoard, LeanBoard, ImpactBoard, StoryBoard, RoadmapBoard,
-	VPCSegment, LeanSections, ImpactActor, ImpactGoal, StorySlice, RoadmapRelease,
+	VPCSegment, LeanSections, ImpactActor, ImpactGoal, MMF, RoadmapRelease,
 	TimelineUnit, TreeLayout, emptyLeanSections,
 } from '../types/Board';
 import { BOARD_FOLDER } from '../constants';
@@ -89,7 +89,8 @@ export class BoardService {
 				]);
 			case 'story-map':
 				return [
-					...board.backbone,
+					...(board.impactMap ? [board.impactMap] : []),
+					...board.mmfs.flatMap((m) => m.features),
 					...Object.values(board.stories).flat(),
 				];
 			case 'roadmap':
@@ -148,12 +149,12 @@ export class BoardService {
 				const stories = (fm['stories'] ?? {}) as Record<string, unknown>;
 				const storyMap: Record<string, Ref[]> = {};
 				for (const [k, v] of Object.entries(stories)) storyMap[k] = refs(v);
-				const slices = (Array.isArray(fm['slices']) ? fm['slices'] : []) as FrontmatterRecord[];
+				const mmfs = (Array.isArray(fm['mmfs']) ? fm['mmfs'] : []) as FrontmatterRecord[];
 				return {
 					...base, boardType: 'story-map',
-					backbone: refs(fm['backbone']),
+					impactMap: fm['impact-map'] ? String(fm['impact-map']) : undefined,
+					mmfs: mmfs.map((m) => ({ name: String(m['name'] ?? ''), features: refs(m['features']) } as MMF)),
 					stories: storyMap,
-					slices: slices.map((sl) => ({ name: String(sl['name'] ?? ''), stories: refs(sl['stories']) } as StorySlice)),
 				} as StoryBoard;
 			}
 			case 'roadmap': {
@@ -213,9 +214,9 @@ export class BoardService {
 			case 'story-map': {
 				const b = config as Partial<StoryBoard>;
 				const out: FrontmatterRecord = {};
-				if (b.backbone) out['backbone'] = b.backbone;
+				if (b.impactMap !== undefined) out['impact-map'] = b.impactMap;
+				if (b.mmfs) out['mmfs'] = b.mmfs.map((m) => ({ name: m.name, features: m.features }));
 				if (b.stories) out['stories'] = b.stories;
-				if (b.slices) out['slices'] = b.slices.map((sl) => ({ name: sl.name, stories: sl.stories }));
 				return out;
 			}
 			case 'roadmap': {
@@ -245,7 +246,7 @@ export class BoardService {
 			case 'impact-map':
 				return { goals: [], layout: 'horizontal', collapsed: [] };
 			case 'story-map':
-				return { backbone: [], stories: {}, slices: [] };
+				return { mmfs: [], stories: {} };
 			case 'roadmap':
 				return { 'timeline-unit': 'month', releases: [] };
 			default:

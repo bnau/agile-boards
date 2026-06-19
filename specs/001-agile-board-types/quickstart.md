@@ -57,17 +57,17 @@ same note can appear on as many boards as you like.
 ### 3. Impact Mapping
 
 1. "Agile Boards: Create Impact Map"
-2. Set the **Goal** (link or create a note)
-3. Add **Actors** by linking existing customer notes
+2. Add a **Goal** with **+ Goal** (link or create a note); add as many goals as you need — each is an independent tree
+3. Under a goal, add **Actors** by linking existing customer notes
 4. Branch **Impacts** under each Actor, then **Deliverables** (Feature notes) under each Impact
 5. Expand/collapse branches as needed
 
 ### 4. Story Map
 
 1. "Agile Boards: Create Story Map"
-2. Build the **backbone** by linking your Feature (deliverable) notes from the Impact Map
-3. Add **user-story** post-its in the column under each backbone item
-4. Draw horizontal **release slices** across the map (first slice = walking skeleton)
+2. Pick the **source impact map** from the dropdown at the top
+3. Create one or more **MMFs**, then **+ Import feature** to pull in deliverables from that impact map (each feature can be imported into only one MMF)
+4. In the derived **table** (actor columns × feature sub-columns over impact rows), add **user stories** in each feature's cell
 
 ### 5. Roadmap
 

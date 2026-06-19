@@ -22,8 +22,8 @@ export const PREVIEW_LENGTH = 240;
  * Reuse relationships come from the spec (specs/001-agile-board-types/spec.md):
  *  - customerSegment: VPC Customer ↔ Lean Customer Segments ↔ Impact Actor
  *  - valueProposition: VPC Products & Services ↔ Lean Unique Value Proposition
- *  - feature: Impact Deliverable ↔ Story Map backbone
- *  - story: Story Map stories ↔ Roadmap items (which also reuse features)
+ *  - feature: Impact Deliverable ↔ Story Map MMF feature (imported from the Impact Map)
+ *  - story: Story Map user stories ↔ Roadmap items (which also reuse features)
  */
 export const CARD_TYPE = {
 	customerSegment: 'Customer Segment',
