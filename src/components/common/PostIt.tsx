@@ -13,6 +13,8 @@ interface PostItProps {
 	/** Replace this reference with another (used by relink / quick-create). */
 	onReplace?: (newRef: string) => void;
 	compact?: boolean;
+	/** Board section this post-it belongs to; used as the note's type subfolder on quick-create. */
+	cardType?: string;
 }
 
 /**
@@ -20,7 +22,7 @@ interface PostItProps {
  * the underlying note for editing. A missing reference renders a non-destructive
  * indicator with relink / quick-create. The note's content is never edited here.
  */
-export const PostIt = ({ refStr, sourcePath, onRemove, onReplace, compact }: PostItProps) => {
+export const PostIt = ({ refStr, sourcePath, onRemove, onReplace, compact, cardType }: PostItProps) => {
 	const app = useApp();
 	const { noteService, referenceService } = useServices();
 	const { title, preview, missing, loading } = useNotePreview(refStr, sourcePath);
@@ -30,11 +32,15 @@ export const PostIt = ({ refStr, sourcePath, onRemove, onReplace, compact }: Pos
 	};
 
 	const relink = () => {
-		openNotePicker(app, (file) => onReplace?.(referenceService.toWikilink(file, sourcePath)));
+		openNotePicker(
+			app,
+			(file) => onReplace?.(referenceService.toWikilink(file, sourcePath)),
+			cardType ? { items: noteService.notesOfType(cardType, sourcePath), cardType } : {},
+		);
 	};
 
 	const quickCreate = async () => {
-		const file = await noteService.createNote(referenceService.label(refStr));
+		const file = await noteService.createNote(referenceService.label(refStr), { boardPath: sourcePath, cardType });
 		onReplace?.(referenceService.toWikilink(file, sourcePath));
 	};
 

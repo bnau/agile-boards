@@ -56,10 +56,11 @@ export const StoryBoard = ({ board, boardPath, onBoardUpdate }: StoryBoardProps)
 								onRemove={() => removeBackbone(i)}
 								onReplace={(next) => replaceBackbone(i, next)}
 								compact
+								cardType="Activity"
 							/>
 						</div>
 					))}
-					<AddPostIt sourcePath={boardPath} onAdd={addBackbone} label="+ Activity" />
+					<AddPostIt sourcePath={boardPath} onAdd={addBackbone} label="+ Activity" cardType="Activity" />
 				</div>
 			</div>
 
@@ -74,6 +75,7 @@ export const StoryBoard = ({ board, boardPath, onBoardUpdate }: StoryBoardProps)
 							onChange={(refs) => setColumn(ref, refs)}
 							compact
 							addLabel="+ Story"
+							cardType="Story"
 						/>
 					</div>
 				))}
@@ -98,6 +100,7 @@ export const StoryBoard = ({ board, boardPath, onBoardUpdate }: StoryBoardProps)
 							onChange={(refs) => setSliceStories(i, refs)}
 							compact
 							addLabel="+ Story"
+							cardType="Story"
 						/>
 					</div>
 				))}

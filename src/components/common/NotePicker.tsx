@@ -1,14 +1,23 @@
 import { App, FuzzySuggestModal, TFile } from 'obsidian';
 
-/** Fuzzy-search any vault note to link as a post-it (content notes are untyped). */
+interface NotePickerOptions {
+	/** Restrict the choices to this list (e.g. notes of a given card type). */
+	items?: TFile[];
+	/** Card type, used only to label the prompt. */
+	cardType?: string;
+}
+
+/** Fuzzy-search existing notes to link as a post-it, optionally scoped to a card type. */
 export class NotePickerModal extends FuzzySuggestModal<TFile> {
-	constructor(app: App, private onChoose: (file: TFile) => void) {
+	constructor(app: App, private onChoose: (file: TFile) => void, private options: NotePickerOptions = {}) {
 		super(app);
-		this.setPlaceholder('Link an existing note…');
+		this.setPlaceholder(
+			options.cardType ? `Link an existing ${options.cardType}…` : 'Link an existing note…',
+		);
 	}
 
 	getItems(): TFile[] {
-		return this.app.vault.getMarkdownFiles();
+		return this.options.items ?? this.app.vault.getMarkdownFiles();
 	}
 
 	getItemText(file: TFile): string {
@@ -20,6 +29,10 @@ export class NotePickerModal extends FuzzySuggestModal<TFile> {
 	}
 }
 
-export function openNotePicker(app: App, onChoose: (file: TFile) => void): void {
-	new NotePickerModal(app, onChoose).open();
+export function openNotePicker(
+	app: App,
+	onChoose: (file: TFile) => void,
+	options: NotePickerOptions = {},
+): void {
+	new NotePickerModal(app, onChoose, options).open();
 }

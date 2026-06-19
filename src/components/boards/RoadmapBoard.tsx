@@ -86,6 +86,7 @@ export const RoadmapBoard = ({ board, boardPath, onBoardUpdate }: RoadmapBoardPr
 								onChange={(items) => updateRelease(index, { items })}
 								compact
 								addLabel="+ Item"
+								cardType="Item"
 							/>
 						</div>
 					</div>

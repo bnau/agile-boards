@@ -38,6 +38,7 @@ export const LeanBoard = ({ board, boardPath, onBoardUpdate }: LeanBoardProps) =
 						sourcePath={boardPath}
 						onChange={(refs) => update(key, refs)}
 						compact
+						cardType={title}
 					/>
 				</div>
 			))}

@@ -8,6 +8,8 @@ interface AddPostItProps {
 	/** Called with the new wikilink reference to add to the layout. */
 	onAdd: (ref: string) => void;
 	label?: string;
+	/** Board section this post-it belongs to; used as the note's type subfolder. */
+	cardType?: string;
 }
 
 /**
@@ -15,7 +17,7 @@ interface AddPostItProps {
  * or by linking an existing one. Both paths return a wikilink to add to the
  * board layout; neither edits any note content beyond creating an empty note.
  */
-export const AddPostIt = ({ sourcePath, onAdd, label = '+ Add' }: AddPostItProps) => {
+export const AddPostIt = ({ sourcePath, onAdd, label = '+ Add', cardType }: AddPostItProps) => {
 	const app = useApp();
 	const { noteService, referenceService } = useServices();
 	const [creating, setCreating] = useState(false);
@@ -24,14 +26,18 @@ export const AddPostIt = ({ sourcePath, onAdd, label = '+ Add' }: AddPostItProps
 	const createNew = async () => {
 		const name = title.trim();
 		if (!name) { setCreating(false); return; }
-		const file = await noteService.createNote(name);
+		const file = await noteService.createNote(name, { boardPath: sourcePath, cardType });
 		onAdd(referenceService.toWikilink(file, sourcePath));
 		setTitle('');
 		setCreating(false);
 	};
 
 	const linkExisting = () => {
-		openNotePicker(app, (file) => onAdd(referenceService.toWikilink(file, sourcePath)));
+		openNotePicker(
+			app,
+			(file) => onAdd(referenceService.toWikilink(file, sourcePath)),
+			cardType ? { items: noteService.notesOfType(cardType, sourcePath), cardType } : {},
+		);
 	};
 
 	if (creating) {

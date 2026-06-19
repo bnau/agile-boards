@@ -43,9 +43,9 @@ export const ImpactBoard = ({ board, boardPath, onBoardUpdate }: ImpactBoardProp
 					<span className="agile-impact-node__type">Goal (Why)</span>
 					<div className="agile-impact-node__label">
 						{board.goal ? (
-							<PostIt refStr={board.goal} sourcePath={boardPath} onRemove={() => setGoal('')} onReplace={setGoal} compact />
+							<PostIt refStr={board.goal} sourcePath={boardPath} onRemove={() => setGoal('')} onReplace={setGoal} compact cardType="Goal" />
 						) : (
-							<AddPostIt sourcePath={boardPath} onAdd={setGoal} label="+ Goal" />
+							<AddPostIt sourcePath={boardPath} onAdd={setGoal} label="+ Goal" cardType="Goal" />
 						)}
 					</div>
 				</div>
@@ -75,6 +75,7 @@ export const ImpactBoard = ({ board, boardPath, onBoardUpdate }: ImpactBoardProp
 											onRemove={() => removeActor(ai)}
 											onReplace={(ref) => replaceActor(ai, ref)}
 											compact
+											cardType="Actor"
 										/>
 									</div>
 								</div>
@@ -92,6 +93,7 @@ export const ImpactBoard = ({ board, boardPath, onBoardUpdate }: ImpactBoardProp
 															onRemove={() => removeImpact(ai, ii)}
 															onReplace={(ref) => replaceImpact(ai, ii, ref)}
 															compact
+															cardType="Impact"
 														/>
 													</div>
 												</div>
@@ -103,17 +105,18 @@ export const ImpactBoard = ({ board, boardPath, onBoardUpdate }: ImpactBoardProp
 														onChange={(refs) => setDeliverables(ai, ii, refs)}
 														compact
 														addLabel="+ Deliverable"
+														cardType="Deliverable"
 													/>
 												</div>
 											</div>
 										))}
-										<AddPostIt sourcePath={boardPath} onAdd={(ref) => addImpact(ai, ref)} label="+ Impact" />
+										<AddPostIt sourcePath={boardPath} onAdd={(ref) => addImpact(ai, ref)} label="+ Impact" cardType="Impact" />
 									</div>
 								)}
 							</div>
 						);
 					})}
-					<AddPostIt sourcePath={boardPath} onAdd={addActor} label="+ Actor" />
+					<AddPostIt sourcePath={boardPath} onAdd={addActor} label="+ Actor" cardType="Actor" />
 				</div>
 			</div>
 		</div>

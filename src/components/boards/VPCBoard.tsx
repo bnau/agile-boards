@@ -87,9 +87,10 @@ export const VPCBoard = ({ board, boardPath, onBoardUpdate }: VPCBoardProps) => 
 									onRemove={() => updateSegment({ customer: undefined })}
 									onReplace={(next) => updateSegment({ customer: next })}
 									compact
+									cardType="Customer Segment"
 								/>
 							) : (
-								<AddPostIt sourcePath={boardPath} onAdd={(ref) => updateSegment({ customer: ref })} label="+ Customer" />
+								<AddPostIt sourcePath={boardPath} onAdd={(ref) => updateSegment({ customer: ref })} label="+ Customer" cardType="Customer Segment" />
 							)}
 						</div>
 						<Section title="Jobs" refs={segment.jobs} sourcePath={boardPath} onChange={(jobs) => updateSegment({ jobs })} />

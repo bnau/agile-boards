@@ -2,6 +2,18 @@ import { App, TFile } from 'obsidian';
 import { DEFAULT_CARDS_FOLDER, PREVIEW_LENGTH } from '../constants';
 
 /**
+ * Where a new post-it note should be filed. The note's folder is derived as
+ * `<cardsFolder>/<project>/<type>`, where the project is the folder the board
+ * note lives in and the type is the board section the post-it is added to.
+ */
+export interface NoteContext {
+	/** Path of the board note the post-it is being added to. */
+	boardPath?: string;
+	/** The board section/type the post-it belongs to (becomes a subfolder). */
+	cardType?: string;
+}
+
+/**
  * Owns content-note I/O. A content note is an ordinary Markdown note used as a
  * post-it. NoteService creates such notes, derives their display title and body
  * preview, and (only on explicit user action) deletes them.
@@ -17,13 +29,52 @@ export class NoteService {
 		return this.cardsFolder;
 	}
 
-	/** Create a new content note for a post-it and return it. */
-	async createNote(title: string): Promise<TFile> {
-		await this.ensureFolder(this.cardsFolder);
-		const safe = title.trim().replace(/[\\/:*?"<>|#^[\]]/g, '-') || 'Untitled';
-		const path = await this.uniquePath(`${this.cardsFolder}/${safe}.md`);
+	/**
+	 * Create a new content note for a post-it and return it. When a context is
+	 * given, the note is filed under `<cardsFolder>/<project>/<type>`; otherwise
+	 * it lands directly in the cards folder.
+	 */
+	async createNote(title: string, context?: NoteContext): Promise<TFile> {
+		const folder = this.folderFor(context);
+		await this.ensureFolder(folder);
+		const safe = this.sanitize(title.trim()) || 'Untitled';
+		const path = await this.uniquePath(`${folder}/${safe}.md`);
 		const content = `# ${title.trim() || safe}\n\n`;
 		return this.app.vault.create(path, content);
+	}
+
+	/** Resolve the target folder for a new note: cardsFolder/<project>/<type>. */
+	private folderFor(context?: NoteContext): string {
+		const project = context?.boardPath ? this.projectName(context.boardPath) : '';
+		const type = context?.cardType ? this.sanitize(context.cardType) : '';
+		return [this.cardsFolder, project, type].filter(Boolean).join('/');
+	}
+
+	/** Project = the name of the folder the board note lives in. */
+	private projectName(boardPath: string): string {
+		const slash = boardPath.lastIndexOf('/');
+		if (slash < 0) return '';
+		const dir = boardPath.slice(0, slash);
+		return this.sanitize(dir.slice(dir.lastIndexOf('/') + 1));
+	}
+
+	/** Strip characters that are illegal in note/folder names. */
+	private sanitize(s: string): string {
+		return s.trim().replace(/[\\/:*?"<>|#^[\]]/g, '-');
+	}
+
+	/**
+	 * Markdown notes filed under the given card type for the board's project,
+	 * i.e. living exactly in `<cardsFolder>/<project>/<type>` — the same folder
+	 * new notes of that type are created in. Used to scope the link picker so a
+	 * "Jobs" slot only offers existing Jobs notes of the current project.
+	 * Untyped notes (sitting directly in the cards folder) are never matched.
+	 * An empty/unknown type falls back to every markdown note.
+	 */
+	notesOfType(cardType: string, boardPath?: string): TFile[] {
+		if (!this.sanitize(cardType)) return this.app.vault.getMarkdownFiles();
+		const folder = this.folderFor({ boardPath, cardType });
+		return this.app.vault.getMarkdownFiles().filter((f) => f.parent?.path === folder);
 	}
 
 	/** Display title for a post-it: first level-1 heading if present, else basename. */

@@ -12,6 +12,8 @@ interface SectionProps {
 	addLabel?: string;
 	compact?: boolean;
 	className?: string;
+	/** Type subfolder for notes created here; defaults to the section title. */
+	cardType?: string;
 }
 
 /**
@@ -19,8 +21,9 @@ interface SectionProps {
  * (add / remove / reorder / replace) mutate only the reference list — never the
  * underlying notes.
  */
-export const Section = ({ title, refs, sourcePath, onChange, addLabel, compact, className }: SectionProps) => {
+export const Section = ({ title, refs, sourcePath, onChange, addLabel, compact, className, cardType }: SectionProps) => {
 	const [dragIndex, setDragIndex] = useState<number | null>(null);
+	const type = cardType ?? title;
 
 	const removeAt = (i: number) => onChange(refs.filter((_, idx) => idx !== i));
 	const replaceAt = (i: number, next: string) => onChange(refs.map((r, idx) => (idx === i ? next : r)));
@@ -54,11 +57,12 @@ export const Section = ({ title, refs, sourcePath, onChange, addLabel, compact, 
 							onRemove={() => removeAt(i)}
 							onReplace={(next) => replaceAt(i, next)}
 							compact={compact}
+							cardType={type}
 						/>
 					</div>
 				))}
 			</div>
-			<AddPostIt sourcePath={sourcePath} onAdd={add} label={addLabel} />
+			<AddPostIt sourcePath={sourcePath} onAdd={add} label={addLabel} cardType={type} />
 		</div>
 	);
 };
