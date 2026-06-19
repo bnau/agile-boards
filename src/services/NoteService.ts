@@ -39,8 +39,22 @@ export class NoteService {
 		await this.ensureFolder(folder);
 		const safe = this.sanitize(title.trim()) || 'Untitled';
 		const path = await this.uniquePath(`${folder}/${safe}.md`);
-		const content = `# ${title.trim() || safe}\n\n`;
-		return this.app.vault.create(path, content);
+		// The post-it title is the file name, so the note body starts empty.
+		return this.app.vault.create(path, '');
+	}
+
+	/**
+	 * Rename a content note's file. The post-it title is the file name, so this
+	 * is how a post-it is relabelled. Obsidian updates inbound wikilinks (incl.
+	 * the board layout) automatically. Returns the same TFile (its path updates).
+	 */
+	async renameNote(file: TFile, newName: string): Promise<TFile> {
+		const safe = this.sanitize(newName) || 'Untitled';
+		if (safe === file.basename) return file;
+		const dir = file.parent && file.parent.path !== '/' ? file.parent.path : '';
+		const path = await this.uniquePath(dir ? `${dir}/${safe}.md` : `${safe}.md`);
+		await this.app.fileManager.renameFile(file, path);
+		return file;
 	}
 
 	/** Resolve the target folder for a new note: cardsFolder/<project>/<type>. */
@@ -82,11 +96,9 @@ export class NoteService {
 		return this.app.vault.getMarkdownFiles().filter((f) => f.parent != null && folders.has(f.parent.path));
 	}
 
-	/** Display title for a post-it: first level-1 heading if present, else basename. */
+	/** Display title for a post-it: the note's file name. */
 	getTitle(file: TFile): string {
-		const cache = this.app.metadataCache.getFileCache(file);
-		const h1 = cache?.headings?.find((h) => h.level === 1);
-		return h1?.heading ?? file.basename;
+		return file.basename;
 	}
 
 	/** A short body preview (frontmatter and leading H1 stripped). */

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { useApp, useServices } from '../../context/AppContext';
 import { useNotePreview } from '../../hooks/useNotePreview';
 import { MissingNote } from './MissingNote';
@@ -20,17 +21,38 @@ interface PostItProps {
 }
 
 /**
- * Renders one content note as a post-it: title + body preview. Clicking opens
- * the underlying note for editing. A missing reference renders a non-destructive
- * indicator with relink / quick-create. The note's content is never edited here.
+ * Renders one content note as a post-it: title + body preview. The title is the
+ * note's file name; clicking the post-it edits it inline (renaming the file),
+ * while Ctrl/Cmd-click opens the underlying note. A missing reference renders a
+ * non-destructive indicator with relink / quick-create.
  */
 export const PostIt = ({ refStr, sourcePath, onRemove, onReplace, compact, cardType, linkTypes }: PostItProps) => {
 	const app = useApp();
 	const { noteService, referenceService } = useServices();
-	const { title, preview, missing, loading } = useNotePreview(refStr, sourcePath);
+	const { file, title, preview, missing, loading } = useNotePreview(refStr, sourcePath);
+
+	const [editing, setEditing] = useState(false);
+	const [draft, setDraft] = useState('');
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	useEffect(() => { if (editing) inputRef.current?.select(); }, [editing]);
 
 	const open = (newPane: boolean) => {
 		app.workspace.openLinkText(referenceService.linkpath(refStr), sourcePath, newPane);
+	};
+
+	const startEdit = () => {
+		if (!file) return;
+		setDraft(file.basename);
+		setEditing(true);
+	};
+
+	const commit = async () => {
+		setEditing(false);
+		const next = draft.trim();
+		if (file && next && next !== file.basename) {
+			await noteService.renameNote(file, next);
+		}
 	};
 
 	const relink = () => {
@@ -61,15 +83,31 @@ export const PostIt = ({ refStr, sourcePath, onRemove, onReplace, compact, cardT
 	return (
 		<div
 			className={`agile-postit ${compact ? 'agile-postit--compact' : ''}`}
-			onClick={(e) => open(e.ctrlKey || e.metaKey)}
+			onClick={(e) => { if (e.ctrlKey || e.metaKey) open(true); else if (!editing) startEdit(); }}
 			role="button"
 			tabIndex={0}
-			onKeyDown={(e) => { if (e.key === 'Enter') open(false); }}
-			title="Open note"
+			onKeyDown={(e) => { if (!editing && e.key === 'Enter') startEdit(); }}
+			title="Click to rename · Ctrl/Cmd+click to open"
 		>
 			<div className="agile-postit__header">
-				<span className="agile-postit__title">{loading ? '…' : title}</span>
-				{onRemove && (
+				{editing ? (
+					<input
+						ref={inputRef}
+						className="agile-postit__title-input"
+						value={draft}
+						onChange={(e) => setDraft(e.target.value)}
+						onClick={(e) => e.stopPropagation()}
+						onBlur={commit}
+						onKeyDown={(e) => {
+							e.stopPropagation();
+							if (e.key === 'Enter') { e.preventDefault(); commit(); }
+							else if (e.key === 'Escape') { e.preventDefault(); setEditing(false); }
+						}}
+					/>
+				) : (
+					<span className="agile-postit__title">{loading ? '…' : title}</span>
+				)}
+				{onRemove && !editing && (
 					<button
 						className="agile-btn agile-btn--icon agile-btn--danger agile-postit__remove"
 						onClick={(e) => { e.stopPropagation(); onRemove(); }}
