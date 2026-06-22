@@ -110,14 +110,14 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 
 	/* ===== Independent ticket reconciliation ===== */
 	const independentFiles: TFile[] = [];
+	const seenIndependentPaths = new Set<string>();
 	for (const ref of board.independentTickets) {
 		const dest = referenceService.resolve(ref, boardPath);
-		if (dest && !roadmapStoryPathSet.has(dest.path)) {
-			// Not roadmap-sourced: classify as independent.
+		if (dest && !roadmapStoryPathSet.has(dest.path) && !seenIndependentPaths.has(dest.path)) {
+			seenIndependentPaths.add(dest.path);
 			sourceMap.set(dest.path, { kind: 'independent' });
 			independentFiles.push(dest);
 		}
-		// If it's already roadmap-sourced, skip (roadmap takes precedence).
 	}
 
 	// All displayable files (roadmap + independent), for column reconciliation.
@@ -191,7 +191,13 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 
 	/* ===== Independent ticket management ===== */
 	const removeIndependentTicket = (ref: Ref) => {
-		onBoardUpdate({ independentTickets: board.independentTickets.filter((r) => r !== ref) });
+		const targetPath = referenceService.resolve(ref, boardPath)?.path;
+		onBoardUpdate({
+			independentTickets: board.independentTickets.filter((r) => {
+				if (targetPath) return referenceService.resolve(r, boardPath)?.path !== targetPath;
+				return r !== ref;
+			}),
+		});
 	};
 
 	const handleRemoveCard = (_columnId: string, ref: Ref) => {
@@ -199,11 +205,15 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 	};
 
 	const handleReplaceCard = useCallback((oldRef: Ref, newRef: Ref) => {
+		const oldPath = referenceService.resolve(oldRef, boardPath)?.path;
 		onBoardUpdate({
-			independentTickets: board.independentTickets.map((r) => (r === oldRef ? newRef : r)),
+			independentTickets: board.independentTickets.map((r) => {
+				if (oldPath) return referenceService.resolve(r, boardPath)?.path === oldPath ? newRef : r;
+				return r === oldRef ? newRef : r;
+			}),
 			columns: board.columns.map((c) => ({ ...c, cards: c.cards.map((r) => (r === oldRef ? newRef : r)) })),
 		});
-	}, [board.independentTickets, board.columns, onBoardUpdate]);
+	}, [board.independentTickets, board.columns, onBoardUpdate, referenceService, boardPath]);
 
 	/* ===== Roadmap management ===== */
 	const addRoadmap = (path: string) => {
@@ -272,12 +282,19 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 					label="Create"
 					linkItems={(() => {
 						const cardsFolder = noteService.getCardsFolder();
+						const alreadyOnBoard = new Set(allDisplayFiles.map((f) => f.path));
 						return app.vault.getMarkdownFiles().filter((f) =>
-							(f.parent?.name === CARD_TYPE.story && f.path.startsWith(cardsFolder + '/')) ||
-							noteService.getAgileType(f) === CARD_TYPE.story,
+							!alreadyOnBoard.has(f.path) &&
+							((f.parent?.name === CARD_TYPE.story && f.path.startsWith(cardsFolder + '/')) ||
+							noteService.getAgileType(f) === CARD_TYPE.story),
 						);
 					})()}
-					onAdd={(ref) => onBoardUpdate({ independentTickets: [...board.independentTickets, ref] })}
+					onAdd={(ref) => {
+						const file = referenceService.resolve(ref, boardPath);
+						if (!file || !allDisplayFiles.some((f) => f.path === file.path)) {
+							onBoardUpdate({ independentTickets: [...board.independentTickets, ref] });
+						}
+					}}
 				/>
 			</div>
 

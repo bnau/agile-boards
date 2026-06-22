@@ -11,6 +11,16 @@ interface ImpactBoardProps {
 }
 
 export const ImpactBoard = ({ board, boardPath, onBoardUpdate }: ImpactBoardProps) => {
+	const allRefs: string[] = [];
+	for (const g of board.goals) {
+		allRefs.push(g.goal);
+		for (const a of g.actors) {
+			allRefs.push(a.actor);
+			for (const node of a.impacts) {
+				allRefs.push(node.impact, ...node.deliverables);
+			}
+		}
+	}
 	const updateGoals = (fn: (goals: ImpactGoal[]) => ImpactGoal[]) => {
 		onBoardUpdate({ goals: fn(board.goals.map(cloneGoal)) });
 	};
@@ -120,23 +130,24 @@ export const ImpactBoard = ({ board, boardPath, onBoardUpdate }: ImpactBoardProp
 																compact
 																addLabel="+ Deliverable"
 																cardType={CARD_TYPE.feature}
+																excludeRefs={allRefs}
 															/>
 														</div>
 													</div>
 												))}
-												<AddPostIt sourcePath={boardPath} onAdd={(ref) => addImpact(gi, ai, ref)} label="+ Impact" cardType="Impact" />
+												<AddPostIt sourcePath={boardPath} onAdd={(ref) => addImpact(gi, ai, ref)} label="+ Impact" cardType="Impact" excludeRefs={allRefs} />
 											</div>
 										)}
 									</div>
 								);
 							})}
-							<AddPostIt sourcePath={boardPath} onAdd={(ref) => addActor(gi, ref)} label="+ Actor" cardType={CARD_TYPE.customerSegment} />
+							<AddPostIt sourcePath={boardPath} onAdd={(ref) => addActor(gi, ref)} label="+ Actor" cardType={CARD_TYPE.customerSegment} excludeRefs={allRefs} />
 						</div>
 					</div>
 				))}
 
 				<div className="agile-impact-add-goal">
-					<AddPostIt sourcePath={boardPath} onAdd={addGoal} label="+ Goal" cardType="Goal" />
+					<AddPostIt sourcePath={boardPath} onAdd={addGoal} label="+ Goal" cardType="Goal" excludeRefs={allRefs} />
 				</div>
 			</div>
 		</div>

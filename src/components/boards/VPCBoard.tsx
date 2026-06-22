@@ -20,6 +20,12 @@ export const VPCBoard = ({ board, boardPath, onBoardUpdate }: VPCBoardProps) => 
 
 	const segment: VPCSegment | undefined = board.segments[active];
 
+	const allRefs: string[] = [];
+	for (const seg of board.segments) {
+		if (seg.customer) allRefs.push(seg.customer);
+		allRefs.push(...seg.jobs, ...seg.pains, ...seg.gains, ...seg.productsServices, ...seg.painRelievers, ...seg.gainCreators);
+	}
+
 	const updateSegment = (patch: Partial<VPCSegment>) => {
 		const segments = board.segments.map((s, i) => (i === active ? { ...s, ...patch } : s));
 		onBoardUpdate({ segments });
@@ -91,19 +97,19 @@ export const VPCBoard = ({ board, boardPath, onBoardUpdate }: VPCBoardProps) => 
 									cardType={CARD_TYPE.customerSegment}
 								/>
 							) : (
-								<AddPostIt sourcePath={boardPath} onAdd={(ref) => updateSegment({ customer: ref })} label="+ Customer" cardType={CARD_TYPE.customerSegment} />
+								<AddPostIt sourcePath={boardPath} onAdd={(ref) => updateSegment({ customer: ref })} label="+ Customer" cardType={CARD_TYPE.customerSegment} excludeRefs={allRefs} />
 							)}
 						</div>
-						<Section title="Jobs" refs={segment.jobs} sourcePath={boardPath} onChange={(jobs) => updateSegment({ jobs })} />
-						<Section title="Pains" refs={segment.pains} sourcePath={boardPath} onChange={(pains) => updateSegment({ pains })} />
-						<Section title="Gains" refs={segment.gains} sourcePath={boardPath} onChange={(gains) => updateSegment({ gains })} />
+						<Section title="Jobs" refs={segment.jobs} sourcePath={boardPath} onChange={(jobs) => updateSegment({ jobs })} excludeRefs={allRefs} />
+						<Section title="Pains" refs={segment.pains} sourcePath={boardPath} onChange={(pains) => updateSegment({ pains })} excludeRefs={allRefs} />
+						<Section title="Gains" refs={segment.gains} sourcePath={boardPath} onChange={(gains) => updateSegment({ gains })} excludeRefs={allRefs} />
 					</div>
 
 					<div className="agile-vpc-panel agile-vpc-panel--value">
 						<h3 className="agile-vpc-panel__title">Value Map</h3>
-						<Section title="Products &amp; Services" refs={segment.productsServices} sourcePath={boardPath} onChange={(productsServices) => updateSegment({ productsServices })} cardType={CARD_TYPE.valueProposition} />
-						<Section title="Pain Relievers" refs={segment.painRelievers} sourcePath={boardPath} onChange={(painRelievers) => updateSegment({ painRelievers })} />
-						<Section title="Gain Creators" refs={segment.gainCreators} sourcePath={boardPath} onChange={(gainCreators) => updateSegment({ gainCreators })} />
+						<Section title="Products &amp; Services" refs={segment.productsServices} sourcePath={boardPath} onChange={(productsServices) => updateSegment({ productsServices })} cardType={CARD_TYPE.valueProposition} excludeRefs={allRefs} />
+						<Section title="Pain Relievers" refs={segment.painRelievers} sourcePath={boardPath} onChange={(painRelievers) => updateSegment({ painRelievers })} excludeRefs={allRefs} />
+						<Section title="Gain Creators" refs={segment.gainCreators} sourcePath={boardPath} onChange={(gainCreators) => updateSegment({ gainCreators })} excludeRefs={allRefs} />
 					</div>
 				</div>
 			)}

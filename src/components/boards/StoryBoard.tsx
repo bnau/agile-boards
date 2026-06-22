@@ -148,6 +148,8 @@ export const StoryBoard = ({ board, boardPath, onBoardUpdate }: StoryBoardProps)
 	}
 	const leafCols = actorCols.reduce((n, c) => n + c.features.length, 0);
 
+	const allStoryRefs = (Object.values(board.stories) as string[][]).flat();
+
 	const setCellStories = (featureKey: string, refs: string[]) =>
 		onBoardUpdate({ stories: { ...board.stories, [featureKey]: refs } });
 
@@ -272,6 +274,7 @@ export const StoryBoard = ({ board, boardPath, onBoardUpdate }: StoryBoardProps)
 																compact
 																addLabel="+ US"
 																cardType={CARD_TYPE.story}
+																excludeRefs={allStoryRefs}
 															/>
 														) : null}
 													</td>

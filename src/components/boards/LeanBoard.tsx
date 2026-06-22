@@ -30,6 +30,8 @@ export const LeanBoard = ({ board, boardPath, onBoardUpdate }: LeanBoardProps) =
 		onBoardUpdate({ sections: { ...board.sections, [key]: refs } });
 	};
 
+	const allRefs = (Object.values(board.sections) as string[][]).flat();
+
 	return (
 		<div className="agile-lean-board">
 			{BOXES.map(({ key, title, area, type }) => (
@@ -43,6 +45,7 @@ export const LeanBoard = ({ board, boardPath, onBoardUpdate }: LeanBoardProps) =
 						onChange={(refs) => update(key, refs)}
 						compact
 						cardType={type ?? title}
+						excludeRefs={allRefs}
 					/>
 				</div>
 			))}

@@ -18,6 +18,8 @@ interface AddPostItProps {
 	/** Override the list of files offered in the link picker. When absent, falls
 	 * back to noteService.notesOfType(linkTypes). */
 	linkItems?: TFile[];
+	/** Wikilink refs already on the board — resolved to paths and excluded from the picker. */
+	excludeRefs?: string[];
 }
 
 /**
@@ -25,7 +27,7 @@ interface AddPostItProps {
  * or by linking an existing one. Both paths return a wikilink to add to the
  * board layout; neither edits any note content beyond creating an empty note.
  */
-export const AddPostIt = ({ sourcePath, onAdd, label = '+ Add', cardType, linkTypes, linkItems }: AddPostItProps) => {
+export const AddPostIt = ({ sourcePath, onAdd, label = '+ Add', cardType, linkTypes, linkItems, excludeRefs }: AddPostItProps) => {
 	const app = useApp();
 	const { noteService, referenceService } = useServices();
 	const [creating, setCreating] = useState(false);
@@ -43,10 +45,16 @@ export const AddPostIt = ({ sourcePath, onAdd, label = '+ Add', cardType, linkTy
 	const linkExisting = () => {
 		const types = linkTypes ?? (cardType ? [cardType] : []);
 		const items = linkItems ?? (types.length ? noteService.notesOfType(types, sourcePath) : undefined);
+		const exclude = excludeRefs?.length
+			? new Set(excludeRefs.flatMap((r) => {
+				const f = referenceService.resolve(r, sourcePath);
+				return f ? [f.path] : [];
+			}))
+			: undefined;
 		openNotePicker(
 			app,
 			(file) => onAdd(referenceService.toWikilink(file, sourcePath)),
-			{ items, cardType },
+			{ items, cardType, exclude },
 		);
 	};
 

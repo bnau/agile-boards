@@ -28,6 +28,8 @@ export const RoadmapBoard = ({ board, boardPath, onBoardUpdate }: RoadmapBoardPr
 	const removeRelease = (index: number) =>
 		onBoardUpdate({ releases: board.releases.filter((_, i) => i !== index) });
 
+	const allRefs = board.releases.flatMap((r) => r.items);
+
 	return (
 		<div className="agile-roadmap-board">
 			<div className="agile-roadmap-board__header">
@@ -89,6 +91,7 @@ export const RoadmapBoard = ({ board, boardPath, onBoardUpdate }: RoadmapBoardPr
 								addLabel="+ Item"
 								cardType={CARD_TYPE.story}
 								linkTypes={[CARD_TYPE.story, CARD_TYPE.feature]}
+								excludeRefs={allRefs}
 							/>
 						</div>
 					</div>

@@ -16,6 +16,8 @@ interface SectionProps {
 	cardType?: string;
 	/** Card types the link picker may offer; defaults to [cardType]. */
 	linkTypes?: string[];
+	/** Wikilink refs already on the board — excluded from the picker. */
+	excludeRefs?: string[];
 }
 
 /**
@@ -23,7 +25,7 @@ interface SectionProps {
  * (add / remove / reorder / replace) mutate only the reference list — never the
  * underlying notes.
  */
-export const Section = ({ title, refs, sourcePath, onChange, addLabel, compact, className, cardType, linkTypes }: SectionProps) => {
+export const Section = ({ title, refs, sourcePath, onChange, addLabel, compact, className, cardType, linkTypes, excludeRefs }: SectionProps) => {
 	const [dragIndex, setDragIndex] = useState<number | null>(null);
 	const type = cardType ?? title;
 
@@ -65,7 +67,7 @@ export const Section = ({ title, refs, sourcePath, onChange, addLabel, compact, 
 					</div>
 				))}
 			</div>
-			<AddPostIt sourcePath={sourcePath} onAdd={add} label={addLabel} cardType={type} linkTypes={linkTypes} />
+			<AddPostIt sourcePath={sourcePath} onAdd={add} label={addLabel} cardType={type} linkTypes={linkTypes} excludeRefs={excludeRefs} />
 		</div>
 	);
 };

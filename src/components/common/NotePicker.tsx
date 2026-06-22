@@ -5,6 +5,8 @@ interface NotePickerOptions {
 	items?: TFile[];
 	/** Card type, used only to label the prompt. */
 	cardType?: string;
+	/** Paths of notes already on the board — excluded from the picker. */
+	exclude?: Set<string>;
 }
 
 /** Fuzzy-search existing notes to link as a post-it, optionally scoped to a card type. */
@@ -17,7 +19,9 @@ export class NotePickerModal extends FuzzySuggestModal<TFile> {
 	}
 
 	getItems(): TFile[] {
-		return this.options.items ?? this.app.vault.getMarkdownFiles();
+		const base = this.options.items ?? this.app.vault.getMarkdownFiles();
+		const { exclude } = this.options;
+		return exclude ? base.filter((f) => !exclude.has(f.path)) : base;
 	}
 
 	getItemText(file: TFile): string {
