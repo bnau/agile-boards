@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { TFile } from 'obsidian';
 import { StoryBoard as StoryBoardType, MMF, ImpactBoard } from '../../types/Board';
 import { Section } from '../common/Section';
@@ -33,12 +33,20 @@ export const StoryBoard = ({ board, boardPath, onBoardUpdate }: StoryBoardProps)
 	useEffect(() => indexService.subscribe(force), [indexService]);
 
 	/* ===== source impact map ===== */
-	const impactBoards = boardService.getBoardsOfType('impact-map');
+	const impactBoards = indexService.getBoardsOfType('impact-map');
 	const impactFile = board.impactMap ? referenceService.resolve(board.impactMap, boardPath) : null;
-	const impactBoard = impactFile ? (boardService.parseBoard(impactFile) as ImpactBoard | null) : null;
+
+	const [impactBoard, setImpactBoard] = useState<ImpactBoard | null>(null);
+	useEffect(() => {
+		if (!impactFile) { setImpactBoard(null); return; }
+		boardService.parseBoardAsync(impactFile).then((b) =>
+			setImpactBoard(b?.boardType === 'impact-map' ? (b as ImpactBoard) : null),
+		);
+	}, [impactFile?.path, boardService]);
+
 	const impactMapValid = impactBoard?.boardType === 'impact-map';
 
-	const boardLabel = (f: TFile) => boardService.parseBoard(f)?.title || f.basename;
+	const boardLabel = (f: TFile) => indexService.getBoardTitle(f.path) ?? f.basename;
 
 	const selectImpactMap = (path: string) => {
 		const f = impactBoards.find((b) => b.path === path);

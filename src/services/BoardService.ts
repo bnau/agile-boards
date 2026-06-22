@@ -21,7 +21,7 @@ export class BoardService {
 		await this.ensureFolder(folder);
 		const now = new Date().toISOString().split('T')[0];
 		const safeName = title.replace(/[\\/:*?"<>|]/g, '-');
-		const path = await this.uniquePath(`${folder}/${safeName}.md`);
+		const path = await this.uniquePath(`${folder}/${safeName}.board`);
 
 		const fm: FrontmatterRecord = {
 			'agile-type': 'board',
@@ -70,17 +70,7 @@ export class BoardService {
 	}
 
 	getAllBoards(): TFile[] {
-		return this.app.vault.getMarkdownFiles().filter((f) => {
-			const fm = this.app.metadataCache.getFileCache(f)?.frontmatter as FrontmatterRecord | undefined;
-			return fm?.['agile-type'] === 'board';
-		});
-	}
-
-	getBoardsOfType(type: BoardType): TFile[] {
-		return this.getAllBoards().filter((f) => {
-			const fm = this.app.metadataCache.getFileCache(f)?.frontmatter as FrontmatterRecord | undefined;
-			return fm?.['board-type'] === type;
-		});
+		return this.app.vault.getFiles().filter((f) => f.extension === 'board');
 	}
 
 	/** All note references contained in a board layout (flattened). */
@@ -292,12 +282,12 @@ export class BoardService {
 
 	private async uniquePath(path: string): Promise<string> {
 		if (!this.app.vault.getAbstractFileByPath(path)) return path;
-		const base = path.replace(/\.md$/, '');
+		const base = path.replace(/\.board$/, '');
 		for (let i = 2; i < 1000; i++) {
-			const candidate = `${base} ${i}.md`;
+			const candidate = `${base} ${i}.board`;
 			if (!this.app.vault.getAbstractFileByPath(candidate)) return candidate;
 		}
-		return `${base} ${Date.now()}.md`;
+		return `${base} ${Date.now()}.board`;
 	}
 
 	private async ensureFolder(path: string): Promise<void> {

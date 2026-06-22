@@ -40,12 +40,20 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 	const [cardDrag, setCardDrag] = useState<CardDrag | null>(null);
 
 	/* ===== source Roadmap (stories + release dates) ===== */
-	const roadmapBoards = boardService.getBoardsOfType('roadmap');
+	const roadmapBoards = indexService.getBoardsOfType('roadmap');
 	const roadmapFile = board.roadmap ? referenceService.resolve(board.roadmap, boardPath) : null;
-	const roadmapBoard = roadmapFile ? (boardService.parseBoard(roadmapFile) as RoadmapBoard | null) : null;
+
+	const [roadmapBoard, setRoadmapBoard] = useState<RoadmapBoard | null>(null);
+	useEffect(() => {
+		if (!roadmapFile) { setRoadmapBoard(null); return; }
+		boardService.parseBoardAsync(roadmapFile).then((b) =>
+			setRoadmapBoard(b?.boardType === 'roadmap' ? (b as RoadmapBoard) : null),
+		);
+	}, [roadmapFile?.path, boardService]);
+
 	const roadmapValid = roadmapBoard?.boardType === 'roadmap';
 
-	const boardLabel = (f: TFile) => boardService.parseBoard(f)?.title || f.basename;
+	const boardLabel = (f: TFile) => indexService.getBoardTitle(f.path) ?? f.basename;
 
 	const selectRoadmap = (path: string) => {
 		const f = roadmapBoards.find((b) => b.path === path);

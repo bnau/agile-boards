@@ -1,4 +1,5 @@
 import { App, TFile, EventRef } from 'obsidian';
+import { BoardType } from '../types/Board';
 import { BoardService } from './BoardService';
 import { ReferenceService } from './ReferenceService';
 
@@ -13,6 +14,8 @@ type ChangeListener = () => void;
 export class IndexService {
 	private boards = new Set<string>();
 	private referencedBy = new Map<string, Set<string>>(); // note path -> board paths
+	private boardTypeCache = new Map<string, BoardType>();
+	private boardTitleCache = new Map<string, string>();
 	private listeners = new Set<ChangeListener>();
 	private metaRefs: EventRef[] = [];
 	private vaultRefs: EventRef[] = [];
@@ -32,6 +35,12 @@ export class IndexService {
 			if (file instanceof TFile) this.onDelete(file);
 		}));
 		this.vaultRefs.push(this.app.vault.on('rename', () => this.rebuild()));
+		this.vaultRefs.push(this.app.vault.on('create', (file) => {
+			if (file instanceof TFile && file.extension === 'board') this.rebuild();
+		}));
+		this.vaultRefs.push(this.app.vault.on('modify', (file) => {
+			if (file instanceof TFile && file.extension === 'board') this.rebuild();
+		}));
 	}
 
 	destroy(): void {
@@ -46,6 +55,17 @@ export class IndexService {
 		return [...this.boards]
 			.map((p) => this.app.vault.getAbstractFileByPath(p))
 			.filter((f): f is TFile => f instanceof TFile);
+	}
+
+	getBoardsOfType(type: BoardType): TFile[] {
+		return [...this.boards]
+			.filter((p) => this.boardTypeCache.get(p) === type)
+			.map((p) => this.app.vault.getAbstractFileByPath(p))
+			.filter((f): f is TFile => f instanceof TFile);
+	}
+
+	getBoardTitle(path: string): string | undefined {
+		return this.boardTitleCache.get(path);
 	}
 
 	/** Board files that reference a given note path. */
@@ -64,7 +84,7 @@ export class IndexService {
 
 	private onChange(file: TFile): void {
 		const wasBoard = this.boards.has(file.path);
-		const isBoard = this.boardService.parseBoard(file) !== null;
+		const isBoard = file.extension === 'board' || this.boardService.parseBoard(file) !== null;
 		if (wasBoard || isBoard) {
 			this.rebuild();
 		}
@@ -74,21 +94,30 @@ export class IndexService {
 		if (this.boards.has(file.path)) this.rebuild();
 	}
 
-	private rebuild(): void {
-		this.boards.clear();
-		this.referencedBy.clear();
+	private async rebuild(): Promise<void> {
+		const localBoards = new Set<string>();
+		const localRefBy = new Map<string, Set<string>>();
+		const localTypeCache = new Map<string, BoardType>();
+		const localTitleCache = new Map<string, string>();
 
 		for (const file of this.boardService.getAllBoards()) {
-			this.boards.add(file.path);
-			const board = this.boardService.parseBoard(file);
+			localBoards.add(file.path);
+			const board = await this.boardService.parseBoardAsync(file);
 			if (!board) continue;
+			localTypeCache.set(file.path, board.boardType);
+			localTitleCache.set(file.path, board.title);
 			for (const ref of this.boardService.extractRefs(board)) {
 				const dest = this.referenceService.resolve(ref, file.path);
 				if (!dest) continue;
-				if (!this.referencedBy.has(dest.path)) this.referencedBy.set(dest.path, new Set());
-				this.referencedBy.get(dest.path)!.add(file.path);
+				if (!localRefBy.has(dest.path)) localRefBy.set(dest.path, new Set());
+				localRefBy.get(dest.path)!.add(file.path);
 			}
 		}
+
+		this.boards = localBoards;
+		this.referencedBy = localRefBy;
+		this.boardTypeCache = localTypeCache;
+		this.boardTitleCache = localTitleCache;
 		this.notify();
 	}
 
