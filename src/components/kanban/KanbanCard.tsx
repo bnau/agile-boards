@@ -16,6 +16,8 @@ interface KanbanCardProps {
 	terminal: boolean;
 	/** When provided (independent cards only), renders a remove button. */
 	onRemove?: () => void;
+	/** Called after the card note is renamed, with the new wikilink. */
+	onReplace?: (newRef: string) => void;
 }
 
 /**
@@ -23,7 +25,7 @@ interface KanbanCardProps {
  * control (stored on the note), a deadline-color border, a source badge, and
  * (for independent tickets) a remove button.
  */
-export const KanbanCard = ({ refStr, sourcePath, source, terminal, onRemove }: KanbanCardProps) => {
+export const KanbanCard = ({ refStr, sourcePath, source, terminal, onRemove, onReplace }: KanbanCardProps) => {
 	const app = useApp();
 	const { noteService, referenceService, indexService } = useServices();
 
@@ -87,6 +89,7 @@ export const KanbanCard = ({ refStr, sourcePath, source, terminal, onRemove }: K
 				sourcePath={sourcePath}
 				compact
 				cardType={CARD_TYPE.story}
+				onReplace={onReplace}
 			/>
 			<div className="agile-kanban-card__footer" onClick={(e) => e.stopPropagation()}>
 				<label className="agile-kanban-card__estimate-label" title="Estimate (story points)">

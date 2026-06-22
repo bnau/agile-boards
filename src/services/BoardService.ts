@@ -73,6 +73,115 @@ export class BoardService {
 		return this.app.vault.getFiles().filter((f) => f.extension === 'board');
 	}
 
+	/**
+	 * Replace every occurrence of the given old wikilink refs with newRef, and
+	 * rename the oldFilePath key in story-map `stories` dicts to newFilePath.
+	 * Used when a content note is renamed so all referencing boards stay consistent.
+	 */
+	async replaceRefsInBoard(
+		boardFile: TFile,
+		oldFilePath: string,
+		newFilePath: string,
+		oldRefs: Ref[],
+		newRef: string,
+	): Promise<void> {
+		const board = await this.parseBoardAsync(boardFile);
+		if (!board) return;
+
+		const oldRefSet = new Set(oldRefs);
+		const rep = (r: Ref): Ref => (oldRefSet.has(r) ? newRef : r);
+		let updates: Partial<AgileBoard>;
+
+		switch (board.boardType) {
+			case 'kanban': {
+				const b = board as KanbanBoard;
+				updates = {
+					roadmaps: b.roadmaps.map(rep),
+					independentTickets: b.independentTickets.map(rep),
+					columns: b.columns.map((c) => ({ ...c, cards: c.cards.map(rep) })),
+				};
+				break;
+			}
+			case 'story-map': {
+				const b = board as StoryBoard;
+				const stories: Record<string, Ref[]> = {};
+				for (const [k, v] of Object.entries(b.stories)) {
+					const newKey = k === oldFilePath ? newFilePath : k;
+					stories[newKey] = v.map(rep);
+				}
+				updates = {
+					mmfs: b.mmfs.map((m) => ({ ...m, features: m.features.map(rep) })),
+					stories,
+				};
+				break;
+			}
+			case 'roadmap': {
+				const b = board as RoadmapBoard;
+				updates = {
+					releases: b.releases.map((r) => ({ ...r, items: r.items.map(rep) })),
+				};
+				break;
+			}
+			case 'impact-map': {
+				const b = board as ImpactBoard;
+				updates = {
+					goals: b.goals.map((g) => ({
+						...g,
+						goal: rep(g.goal),
+						actors: g.actors.map((a) => ({
+							...a,
+							actor: rep(a.actor),
+							impacts: a.impacts.map((imp) => ({
+								...imp,
+								impact: rep(imp.impact),
+								deliverables: imp.deliverables.map(rep),
+							})),
+						})),
+					})),
+				};
+				break;
+			}
+			case 'lean-canvas': {
+				const b = board as LeanBoard;
+				const s = b.sections;
+				updates = {
+					sections: {
+						problem: s.problem.map(rep),
+						solution: s.solution.map(rep),
+						keyMetrics: s.keyMetrics.map(rep),
+						uniqueValueProposition: s.uniqueValueProposition.map(rep),
+						unfairAdvantage: s.unfairAdvantage.map(rep),
+						channels: s.channels.map(rep),
+						customerSegments: s.customerSegments.map(rep),
+						costStructure: s.costStructure.map(rep),
+						revenueStreams: s.revenueStreams.map(rep),
+					},
+				};
+				break;
+			}
+			case 'value-proposition-canvas': {
+				const b = board as VPCBoard;
+				updates = {
+					segments: b.segments.map((seg) => ({
+						...seg,
+						customer: seg.customer ? rep(seg.customer) : undefined,
+						jobs: seg.jobs.map(rep),
+						pains: seg.pains.map(rep),
+						gains: seg.gains.map(rep),
+						productsServices: seg.productsServices.map(rep),
+						painRelievers: seg.painRelievers.map(rep),
+						gainCreators: seg.gainCreators.map(rep),
+					})),
+				};
+				break;
+			}
+			default:
+				return;
+		}
+
+		await this.updateBoard(boardFile, updates);
+	}
+
 	/** All note references contained in a board layout (flattened). */
 	extractRefs(board: AgileBoard): Ref[] {
 		switch (board.boardType) {

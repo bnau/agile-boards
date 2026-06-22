@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef, useState, useCallback } from 'react';
 import { TFile } from 'obsidian';
 import { CardSourceInfo, KanbanBoard as KanbanBoardType, KanbanColumn, Ref, RoadmapBoard } from '../../types/Board';
 import { CARD_TYPE } from '../../constants';
@@ -28,8 +28,14 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 
 	// Re-render when a relevant note changes (story `status:`, estimate, roadmap content).
 	const relevantPaths = useRef<Set<string>>(new Set());
+	const roadmapPathsRef = useRef<Set<string>>(new Set());
+	const [roadmapVersion, setRoadmapVersion] = useState(0);
 	useEffect(() => {
-		const onChanged = (f: TFile) => { if (relevantPaths.current.has(f.path)) force(); };
+		const onChanged = (f: TFile) => {
+			if (!relevantPaths.current.has(f.path)) return;
+			force();
+			if (roadmapPathsRef.current.has(f.path)) setRoadmapVersion((v) => v + 1);
+		};
 		const changedRef = app.metadataCache.on('changed', onChanged);
 		const resolvedRef = app.metadataCache.on('resolved', () => force());
 		return () => {
@@ -59,9 +65,9 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 			),
 		).then((results) => { if (!cancelled) setParsedRoadmaps(results); });
 		return () => { cancelled = true; };
-		// Re-run when the set of roadmap refs changes.
+		// Re-run when the roadmap list, their resolved paths, or their content changes.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [boardService, board.roadmaps.join(','), roadmapFiles.map((f) => f?.path ?? '').join(',')]);
+	}, [boardService, board.roadmaps.join(','), roadmapFiles.map((f) => f?.path ?? '').join(','), roadmapVersion]);
 
 	const boardLabel = (f: TFile) => indexService.getBoardTitle(f.path) || f.basename;
 
@@ -117,12 +123,10 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 	// All displayable files (roadmap + independent), for column reconciliation.
 	const allDisplayFiles = [...roadmapStoryFiles, ...independentFiles];
 
-	// Update relevantPaths for selective re-renders.
-	relevantPaths.current = new Set([
-		boardPath,
-		...roadmapFiles.filter(Boolean).map((f) => f!.path),
-		...allDisplayFiles.map((f) => f.path),
-	]);
+	// Update relevantPaths and roadmapPaths for selective re-renders.
+	const roadmapFilePaths = roadmapFiles.filter(Boolean).map((f) => f!.path);
+	relevantPaths.current = new Set([boardPath, ...roadmapFilePaths, ...allDisplayFiles.map((f) => f.path)]);
+	roadmapPathsRef.current = new Set(roadmapFilePaths);
 
 	/**
 	 * Place each file into a column. A story's column is the column whose
@@ -193,6 +197,13 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 	const handleRemoveCard = (_columnId: string, ref: Ref) => {
 		removeIndependentTicket(ref);
 	};
+
+	const handleReplaceCard = useCallback((oldRef: Ref, newRef: Ref) => {
+		onBoardUpdate({
+			independentTickets: board.independentTickets.map((r) => (r === oldRef ? newRef : r)),
+			columns: board.columns.map((c) => ({ ...c, cards: c.cards.map((r) => (r === oldRef ? newRef : r)) })),
+		});
+	}, [board.independentTickets, board.columns, onBoardUpdate]);
 
 	/* ===== Roadmap management ===== */
 	const addRoadmap = (path: string) => {
@@ -286,6 +297,7 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 						sourcePath={boardPath}
 						sourceMap={sourceMap}
 						onRemoveCard={handleRemoveCard}
+						onReplaceCard={handleReplaceCard}
 						onCardDragStart={(columnId, index) => setCardDrag({ columnId, index })}
 						onCardDropOnCard={(columnId, index) => moveCard(columnId, index)}
 						onCardDropOnColumn={(columnId) => moveCard(columnId, null)}

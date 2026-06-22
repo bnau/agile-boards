@@ -10,6 +10,8 @@ interface KanbanColumnProps {
 	sourceMap: Map<string, CardSourceInfo>;
 	/** Called when the user removes an independent card from the board. */
 	onRemoveCard: (columnId: string, ref: Ref) => void;
+	/** Called after a card note is renamed, with old and new wikilinks. */
+	onReplaceCard: (oldRef: Ref, newRef: Ref) => void;
 	/** A card drag started from (columnId, index). */
 	onCardDragStart: (columnId: string, index: number) => void;
 	/** A dragged card was dropped onto the card at (columnId, index). */
@@ -30,7 +32,7 @@ const UNKNOWN_ROADMAP: CardSourceInfo = { kind: 'roadmap', roadmapRefs: [] };
  * the total story points of its cards.
  */
 export const KanbanColumn = ({
-	column, sourcePath, sourceMap, onRemoveCard,
+	column, sourcePath, sourceMap, onRemoveCard, onReplaceCard,
 	onCardDragStart, onCardDropOnCard, onCardDropOnColumn, onCardDragEnd,
 }: KanbanColumnProps) => {
 	const app = useApp();
@@ -94,6 +96,7 @@ export const KanbanColumn = ({
 								source={source}
 								terminal={!!column.terminal}
 								onRemove={isIndependent ? () => onRemoveCard(column.id, ref) : undefined}
+								onReplace={(newRef) => onReplaceCard(ref, newRef)}
 							/>
 						</div>
 					);

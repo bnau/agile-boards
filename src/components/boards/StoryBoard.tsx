@@ -77,6 +77,22 @@ export const StoryBoard = ({ board, boardPath, onBoardUpdate }: StoryBoardProps)
 		onBoardUpdate({ mmfs, stories });
 	};
 
+	// Called when a feature note is renamed from this board's PostIt.
+	// Updates both the wikilink in mmfs and the path-keyed stories dict.
+	const replaceFeature = (i: number, fi: number, oldKey: string, newRef: string) => {
+		const mmfs = board.mmfs
+			.map(cloneMmf)
+			.map((x, idx) => idx === i ? { ...x, features: x.features.map((r, j) => j === fi ? newRef : r) } : x);
+		const newFile = referenceService.resolve(newRef, boardPath);
+		const newKey = newFile ? newFile.path : oldKey;
+		const stories = { ...board.stories };
+		if (oldKey !== newKey && oldKey in stories) {
+			stories[newKey] = stories[oldKey];
+			delete stories[oldKey];
+		}
+		onBoardUpdate({ mmfs, stories });
+	};
+
 	/* ===== import picker (impact-map deliverables not yet used in any MMF) ===== */
 	const usedFeatureKeys = new Set<string>();
 	for (const m of board.mmfs) for (const f of m.features) usedFeatureKeys.add(keyOf(f, boardPath));
@@ -183,17 +199,21 @@ export const StoryBoard = ({ board, boardPath, onBoardUpdate }: StoryBoardProps)
 									</button>
 								</div>
 								<div className="agile-mmf__features">
-									{mmf.features.map((ref, fi) => (
+									{mmf.features.map((ref, fi) => {
+									const featureKey = keyOf(ref, boardPath);
+									return (
 										<div key={`${ref}-${fi}`} className="agile-story-feature">
 											<PostIt
 												refStr={ref}
 												sourcePath={boardPath}
 												onRemove={() => removeFeature(i, fi)}
+												onReplace={(newRef) => replaceFeature(i, fi, featureKey, newRef)}
 												compact
 												cardType={CARD_TYPE.feature}
 											/>
 										</div>
-									))}
+									);
+								})}
 									<button
 										className="agile-btn agile-btn--add agile-btn--small"
 										onClick={() => openImport(i)}

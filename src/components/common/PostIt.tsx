@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { TFile } from 'obsidian';
 import { useApp, useServices } from '../../context/AppContext';
 import { useNotePreview } from '../../hooks/useNotePreview';
 import { MissingNote } from './MissingNote';
@@ -28,7 +29,7 @@ interface PostItProps {
  */
 export const PostIt = ({ refStr, sourcePath, onRemove, onReplace, compact, cardType, linkTypes }: PostItProps) => {
 	const app = useApp();
-	const { noteService, referenceService } = useServices();
+	const { noteService, referenceService, boardService, indexService } = useServices();
 	const { file, title, preview, missing, loading } = useNotePreview(refStr, sourcePath);
 
 	const [editing, setEditing] = useState(false);
@@ -50,8 +51,31 @@ export const PostIt = ({ refStr, sourcePath, onRemove, onReplace, compact, cardT
 	const commit = async () => {
 		setEditing(false);
 		const next = draft.trim();
-		if (file && next && next !== file.basename) {
-			await noteService.renameNote(file, next);
+		if (!file || !next || next === file.basename) return;
+
+		// Collect refs in other boards BEFORE rename so they still resolve.
+		const oldFilePath = file.path;
+		type BoardEntry = { boardFile: TFile; oldRefs: string[] };
+		const otherBoards: BoardEntry[] = [];
+		for (const boardFile of indexService.findBoardsReferencing(oldFilePath)) {
+			if (boardFile.path === sourcePath) continue;
+			const board = await boardService.parseBoardAsync(boardFile);
+			if (!board) continue;
+			const matched = boardService.extractRefs(board)
+				.filter((r) => referenceService.resolve(r, boardFile.path)?.path === oldFilePath);
+			if (matched.length) otherBoards.push({ boardFile, oldRefs: matched });
+		}
+
+		await noteService.renameNote(file, next);
+
+		// Update the current board via React state.
+		onReplace?.(referenceService.toWikilink(file, sourcePath));
+
+		// Update all other boards that referenced this note.
+		const newFilePath = file.path;
+		for (const { boardFile, oldRefs } of otherBoards) {
+			const newRef = referenceService.toWikilink(file, boardFile.path);
+			await boardService.replaceRefsInBoard(boardFile, oldFilePath, newFilePath, oldRefs, newRef);
 		}
 	};
 
