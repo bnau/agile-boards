@@ -17,11 +17,11 @@ type FrontmatterRecord = Record<string, unknown>;
 export class BoardService {
 	constructor(private app: App) {}
 
-	async createBoard(type: BoardType, title: string): Promise<TFile> {
-		await this.ensureFolder(BOARD_FOLDER);
+	async createBoard(type: BoardType, title: string, folder = BOARD_FOLDER): Promise<TFile> {
+		await this.ensureFolder(folder);
 		const now = new Date().toISOString().split('T')[0];
 		const safeName = title.replace(/[\\/:*?"<>|]/g, '-');
-		const path = await this.uniquePath(`${BOARD_FOLDER}/${safeName}.md`);
+		const path = await this.uniquePath(`${folder}/${safeName}.md`);
 
 		const fm: FrontmatterRecord = {
 			'agile-type': 'board',

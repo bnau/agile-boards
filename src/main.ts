@@ -108,7 +108,9 @@ export default class AgileBoardsPlugin extends Plugin {
 	}
 
 	private async createAndOpenBoard(type: BoardType, defaultTitle: string): Promise<void> {
-		const file = await this.services.boardService.createBoard(type, defaultTitle);
+		const activeFile = this.app.workspace.getActiveFile();
+		const folder = activeFile?.parent?.path ?? undefined;
+		const file = await this.services.boardService.createBoard(type, defaultTitle, folder);
 		await this.openBoardFile(file);
 	}
 
