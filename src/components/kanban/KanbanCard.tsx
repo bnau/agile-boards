@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { PostIt } from '../common/PostIt';
 import { CARD_TYPE, ESTIMATE_SCALE } from '../../constants';
-import { Estimate, Ref } from '../../types/Board';
+import { CardSourceInfo, Estimate, Ref } from '../../types/Board';
 import { useApp, useServices } from '../../context/AppContext';
 import { useDeadlineColor } from '../../hooks/useDeadlineColor';
 
@@ -10,22 +10,25 @@ interface KanbanCardProps {
 	refStr: string;
 	/** Path of the Kanban board note (for link resolution + open context). */
 	sourcePath: string;
-	/** Source Roadmap reference supplying the release date for the deadline color. */
-	roadmapRef?: Ref;
+	/** Card provenance: roadmap-sourced (with roadmap refs) or independent. */
+	source: CardSourceInfo;
 	/** Whether the card's column is terminal (deadline color suppressed). */
 	terminal: boolean;
+	/** When provided (independent cards only), renders a remove button. */
+	onRemove?: () => void;
 }
 
 /**
  * One Kanban card: a user story rendered as a post-it, with a Fibonacci estimate
- * control (stored on the note) and a deadline-color border driven by the linked
- * Roadmap's release date. Cards are auto-displayed from the Roadmap, so they are
- * not removable here — a story leaves the board by leaving the Roadmap.
+ * control (stored on the note), a deadline-color border, a source badge, and
+ * (for independent tickets) a remove button.
  */
-export const KanbanCard = ({ refStr, sourcePath, roadmapRef, terminal }: KanbanCardProps) => {
+export const KanbanCard = ({ refStr, sourcePath, source, terminal, onRemove }: KanbanCardProps) => {
 	const app = useApp();
-	const { noteService, referenceService } = useServices();
-	const color = useDeadlineColor({ storyRef: refStr, roadmapRef, sourcePath, terminal });
+	const { noteService, referenceService, indexService } = useServices();
+
+	const roadmapRefs: Ref[] = source.kind === 'roadmap' ? source.roadmapRefs : [];
+	const color = useDeadlineColor({ storyRef: refStr, roadmapRefs, sourcePath, terminal });
 
 	const [estimate, setEstimate] = useState<Estimate | null>(null);
 
@@ -48,8 +51,37 @@ export const KanbanCard = ({ refStr, sourcePath, roadmapRef, terminal }: KanbanC
 		setEstimate(value);
 	};
 
+	// Resolve source badge label.
+	let sourceLabel: string;
+	if (source.kind === 'independent') {
+		sourceLabel = 'Independent';
+	} else {
+		const names = source.roadmapRefs.map((ref) => {
+			const f = referenceService.resolve(ref, sourcePath);
+			return f ? (indexService.getBoardTitle(f.path) ?? f.basename) : ref;
+		}).filter(Boolean);
+		sourceLabel = names.join(', ') || 'Roadmap';
+	}
+
 	return (
 		<div className={`agile-kanban-card agile-kanban-card--${color}`}>
+			<div className="agile-kanban-card__header-row">
+				<span
+					className={`agile-kanban-card__source agile-kanban-card__source--${source.kind}`}
+					title={sourceLabel}
+				>
+					{sourceLabel}
+				</span>
+				{onRemove && (
+					<button
+						className="agile-kanban-card__remove agile-btn agile-btn--icon agile-btn--small"
+						title="Remove from board"
+						onClick={(e) => { e.stopPropagation(); onRemove(); }}
+					>
+						×
+					</button>
+				)}
+			</div>
 			<PostIt
 				refStr={refStr}
 				sourcePath={sourcePath}

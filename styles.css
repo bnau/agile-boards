@@ -479,6 +479,59 @@
 .agile-kanban-column__name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .agile-kanban-column__points { color: var(--text-muted); font-size: var(--font-smallest); white-space: nowrap; }
 
+/* Roadmap list (multi-roadmap management) */
+.agile-kanban-source__list { display: flex; flex-wrap: wrap; gap: var(--size-2-1); align-items: center; }
+.agile-kanban-source__item {
+	align-items: center;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-l);
+	display: flex;
+	font-size: var(--font-smaller);
+	gap: var(--size-2-1);
+	padding: 2px var(--size-2-2) 2px var(--size-2-3);
+}
+.agile-kanban-source__item-name { white-space: nowrap; }
+.agile-kanban-source__remove { opacity: 0.6; }
+.agile-kanban-source__item:hover .agile-kanban-source__remove { opacity: 1; }
+.agile-kanban-source__add { min-width: 150px; font-size: var(--font-smaller); }
+
+/* Add independent ticket button */
+.agile-kanban-add-ticket { margin-left: auto; }
+
+/* Card header row: source badge + remove button */
+.agile-kanban-card__header-row {
+	align-items: center;
+	display: flex;
+	gap: var(--size-2-1);
+	justify-content: space-between;
+	padding: 2px var(--size-2-2);
+}
+
+/* Source badge */
+.agile-kanban-card__source {
+	border-radius: var(--radius-s);
+	font-size: var(--font-smallest);
+	max-width: 140px;
+	overflow: hidden;
+	padding: 1px var(--size-2-2);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.agile-kanban-card__source--roadmap {
+	background: var(--background-secondary);
+	color: var(--text-muted);
+}
+.agile-kanban-card__source--independent {
+	background: var(--background-modifier-hover);
+	color: var(--interactive-accent);
+	border: 1px solid var(--interactive-accent);
+}
+
+/* Remove button (independent cards only) */
+.agile-kanban-card__remove { opacity: 0.5; }
+.agile-kanban-card:hover .agile-kanban-card__remove { opacity: 1; }
+
 /* Card footer: estimate control */
 .agile-kanban-card__footer { display: flex; justify-content: flex-end; padding: var(--size-2-1) var(--size-2-2) 0; }
 .agile-kanban-card__estimate { font-size: var(--font-smallest); }

@@ -4,24 +4,26 @@ import { useApp, useServices } from '../context/AppContext';
 import { deadlineColor } from '../utils/deadline';
 
 /**
- * Deadline color for a card, recomputed when the source Roadmap, the story note,
- * or the column's terminal flag changes. The date comes from the linked Roadmap's
- * release that contains the story (earliest target date).
+ * Deadline color for a card, recomputed when the source Roadmaps, the story note,
+ * or the column's terminal flag changes. The date comes from the earliest release
+ * across all linked roadmaps that contain the story. Independent cards pass
+ * `roadmapRefs: []` and always receive blue.
  */
 export function useDeadlineColor(args: {
 	storyRef: Ref;
-	roadmapRef: Ref | undefined;
+	roadmapRefs: Ref[];
 	sourcePath: string; // kanban board path
 	terminal: boolean;
 }): DeadlineColor {
-	const { storyRef, roadmapRef, sourcePath, terminal } = args;
+	const { storyRef, roadmapRefs, sourcePath, terminal } = args;
 	const app = useApp();
 	const { releaseDateService } = useServices();
 
 	const compute = useCallback(
 		(): DeadlineColor =>
-			deadlineColor(releaseDateService.releaseDateFor(storyRef, roadmapRef, sourcePath), { terminal }),
-		[releaseDateService, storyRef, roadmapRef, sourcePath, terminal],
+			deadlineColor(releaseDateService.earliestReleaseDateFor(storyRef, roadmapRefs, sourcePath), { terminal }),
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[releaseDateService, storyRef, sourcePath, terminal, ...roadmapRefs],
 	);
 
 	const [color, setColor] = useState<DeadlineColor>(compute);

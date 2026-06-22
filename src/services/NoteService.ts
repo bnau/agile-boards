@@ -131,6 +131,12 @@ export class NoteService {
 		});
 	}
 
+	/** Read a note's `agile-type` frontmatter field, or null when absent. */
+	getAgileType(file: TFile): string | null {
+		const raw = this.app.metadataCache.getFileCache(file)?.frontmatter?.['agile-type'];
+		return typeof raw === 'string' && raw.trim() ? raw.trim() : null;
+	}
+
 	/** Read a story's Kanban column from its frontmatter `status:`, or null if absent. */
 	getStatus(file: TFile): string | null {
 		const raw = this.app.metadataCache.getFileCache(file)?.frontmatter?.['status'];
@@ -169,7 +175,11 @@ export class NoteService {
 		for (const part of parts) {
 			current = current ? `${current}/${part}` : part;
 			if (!this.app.vault.getAbstractFileByPath(current)) {
-				await this.app.vault.createFolder(current);
+				try {
+					await this.app.vault.createFolder(current);
+				} catch {
+					// Folder already exists on disk but not yet in memory index — safe to continue.
+				}
 			}
 		}
 	}

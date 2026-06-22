@@ -16,6 +16,20 @@ export class ReleaseDateService {
 	) {}
 
 	/**
+	 * Earliest `targetDate` across all roadmaps in `roadmapRefs` that contain
+	 * the story. Loops over refs, delegates to `releaseDateFor`, returns the
+	 * lexicographically smallest non-null ISO date, or null when no date found.
+	 */
+	earliestReleaseDateFor(storyRef: Ref, roadmapRefs: Ref[], sourcePath: string): string | null {
+		let earliest: string | null = null;
+		for (const ref of roadmapRefs) {
+			const date = this.releaseDateFor(storyRef, ref, sourcePath);
+			if (date && (earliest === null || date < earliest)) earliest = date;
+		}
+		return earliest;
+	}
+
+	/**
 	 * Earliest `targetDate` (ISO `YYYY-MM-DD`) of a release in `roadmapRef` whose
 	 * items contain the story, or null when there is no Roadmap, it is unresolved
 	 * or not a roadmap, no release contains the story, or matching releases have

@@ -156,13 +156,23 @@ export interface KanbanColumn {
 	cards: Ref[];
 }
 
+/** Identifies the provenance of a card on the Kanban board. */
+export type CardSourceInfo =
+	| { kind: 'roadmap'; roadmapRefs: Ref[] }
+	| { kind: 'independent' };
+
 export interface KanbanBoard extends BaseBoard {
 	boardType: 'kanban';
 	/**
-	 * Source Roadmap board. Its release items are the stories shown on the board
-	 * (auto-displayed, not imported) and supply the release date for deadline color.
+	 * Source Roadmap boards. Stories from every linked roadmap are auto-displayed.
+	 * Replaces the single `roadmap?: Ref` from spec 002.
 	 */
-	roadmap?: Ref;
+	roadmaps: Ref[];
+	/**
+	 * User Story notes explicitly linked to this board (not roadmap-sourced).
+	 * These are the only cards the user can remove from the board.
+	 */
+	independentTickets: Ref[];
 	/** Fixed workflow columns; store only the per-column card placement. */
 	columns: KanbanColumn[];
 }

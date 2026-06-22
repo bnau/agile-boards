@@ -99,7 +99,8 @@ export class BoardService {
 				return board.releases.flatMap((r) => r.items);
 			case 'kanban':
 				return [
-					...(board.roadmap ? [board.roadmap] : []),
+					...board.roadmaps,
+					...board.independentTickets,
 					...board.columns.flatMap((c) => c.cards),
 				];
 			default:
@@ -180,9 +181,19 @@ export class BoardService {
 			}
 			case 'kanban': {
 				const cols = parseKanbanColumns(fm['columns']);
+				// Migrate legacy `roadmap:` single string → `roadmaps:` list.
+				let roadmaps: Ref[];
+				if (Array.isArray(fm['roadmaps'])) {
+					roadmaps = refs(fm['roadmaps']);
+				} else if (fm['roadmap'] && typeof fm['roadmap'] === 'string') {
+					roadmaps = [fm['roadmap']];
+				} else {
+					roadmaps = [];
+				}
 				return {
 					...base, boardType: 'kanban',
-					roadmap: fm['roadmap'] ? String(fm['roadmap']) : undefined,
+					roadmaps,
+					independentTickets: refs(fm['independent-tickets']),
 					columns: cols.length ? cols : defaultKanbanColumns(),
 				} as KanbanBoard;
 			}
@@ -250,7 +261,8 @@ export class BoardService {
 			case 'kanban': {
 				const b = config as Partial<KanbanBoard>;
 				const out: FrontmatterRecord = {};
-				if (b.roadmap !== undefined) out['roadmap'] = b.roadmap;
+				if (b.roadmaps !== undefined) out['roadmaps'] = b.roadmaps;
+				if (b.independentTickets !== undefined) out['independent-tickets'] = b.independentTickets;
 				if (b.columns) out['columns'] = b.columns.map(columnToFm);
 				return out;
 			}
@@ -272,7 +284,7 @@ export class BoardService {
 			case 'roadmap':
 				return { 'timeline-unit': 'month', releases: [] };
 			case 'kanban':
-				return { roadmap: '', columns: defaultKanbanColumns().map(columnToFm) };
+				return { roadmaps: [], 'independent-tickets': [], columns: defaultKanbanColumns().map(columnToFm) };
 			default:
 				return {};
 		}

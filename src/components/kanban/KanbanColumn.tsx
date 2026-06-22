@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
-import { KanbanColumn as KanbanColumnType, Ref } from '../../types/Board';
+import { CardSourceInfo, KanbanColumn as KanbanColumnType, Ref } from '../../types/Board';
 import { KanbanCard } from './KanbanCard';
 import { useApp, useServices } from '../../context/AppContext';
 
 interface KanbanColumnProps {
 	column: KanbanColumnType;
 	sourcePath: string;
-	/** Source Roadmap reference passed to cards for their deadline color. */
-	roadmapRef?: Ref;
+	/** Maps resolved note path → card source info (roadmap-sourced or independent). */
+	sourceMap: Map<string, CardSourceInfo>;
+	/** Called when the user removes an independent card from the board. */
+	onRemoveCard: (columnId: string, ref: Ref) => void;
 	/** A card drag started from (columnId, index). */
 	onCardDragStart: (columnId: string, index: number) => void;
 	/** A dragged card was dropped onto the card at (columnId, index). */
@@ -18,6 +20,9 @@ interface KanbanColumnProps {
 	onCardDragEnd: () => void;
 }
 
+const INDEPENDENT: CardSourceInfo = { kind: 'independent' };
+const UNKNOWN_ROADMAP: CardSourceInfo = { kind: 'roadmap', roadmapRefs: [] };
+
 /**
  * One fixed Kanban column: a workflow state holding an ordered list of story
  * cards. The column set is not editable; only cards move (within or between
@@ -25,7 +30,7 @@ interface KanbanColumnProps {
  * the total story points of its cards.
  */
 export const KanbanColumn = ({
-	column, sourcePath, roadmapRef,
+	column, sourcePath, sourceMap, onRemoveCard,
 	onCardDragStart, onCardDropOnCard, onCardDropOnColumn, onCardDragEnd,
 }: KanbanColumnProps) => {
 	const app = useApp();
@@ -67,24 +72,32 @@ export const KanbanColumn = ({
 				onDragOver={(e) => e.preventDefault()}
 				onDrop={() => onCardDropOnColumn(column.id)}
 			>
-				{column.cards.map((ref, i) => (
-					<div
-						key={`${ref}-${i}`}
-						className="agile-kanban-column__card-slot"
-						draggable
-						onDragStart={(e) => { e.stopPropagation(); onCardDragStart(column.id, i); }}
-						onDragOver={(e) => e.preventDefault()}
-						onDrop={(e) => { e.stopPropagation(); onCardDropOnCard(column.id, i); }}
-						onDragEnd={onCardDragEnd}
-					>
-						<KanbanCard
-							refStr={ref}
-							sourcePath={sourcePath}
-							roadmapRef={roadmapRef}
-							terminal={!!column.terminal}
-						/>
-					</div>
-				))}
+				{column.cards.map((ref, i) => {
+					const file = referenceService.resolve(ref, sourcePath);
+					const source: CardSourceInfo = file
+						? (sourceMap.get(file.path) ?? UNKNOWN_ROADMAP)
+						: UNKNOWN_ROADMAP;
+					const isIndependent = source.kind === 'independent';
+					return (
+						<div
+							key={`${ref}-${i}`}
+							className="agile-kanban-column__card-slot"
+							draggable
+							onDragStart={(e) => { e.stopPropagation(); onCardDragStart(column.id, i); }}
+							onDragOver={(e) => e.preventDefault()}
+							onDrop={(e) => { e.stopPropagation(); onCardDropOnCard(column.id, i); }}
+							onDragEnd={onCardDragEnd}
+						>
+							<KanbanCard
+								refStr={ref}
+								sourcePath={sourcePath}
+								source={source}
+								terminal={!!column.terminal}
+								onRemove={isIndependent ? () => onRemoveCard(column.id, ref) : undefined}
+							/>
+						</div>
+					);
+				})}
 			</div>
 		</div>
 	);

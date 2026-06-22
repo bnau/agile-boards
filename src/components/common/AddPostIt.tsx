@@ -1,3 +1,4 @@
+import { TFile } from 'obsidian';
 import { useState } from 'react';
 import { useApp, useServices } from '../../context/AppContext';
 import { openNotePicker } from './NotePicker';
@@ -14,6 +15,9 @@ interface AddPostItProps {
 	 * reuse notes of several compatible types (e.g. a Roadmap item links stories
 	 * and features). */
 	linkTypes?: string[];
+	/** Override the list of files offered in the link picker. When absent, falls
+	 * back to noteService.notesOfType(linkTypes). */
+	linkItems?: TFile[];
 }
 
 /**
@@ -21,7 +25,7 @@ interface AddPostItProps {
  * or by linking an existing one. Both paths return a wikilink to add to the
  * board layout; neither edits any note content beyond creating an empty note.
  */
-export const AddPostIt = ({ sourcePath, onAdd, label = '+ Add', cardType, linkTypes }: AddPostItProps) => {
+export const AddPostIt = ({ sourcePath, onAdd, label = '+ Add', cardType, linkTypes, linkItems }: AddPostItProps) => {
 	const app = useApp();
 	const { noteService, referenceService } = useServices();
 	const [creating, setCreating] = useState(false);
@@ -38,10 +42,11 @@ export const AddPostIt = ({ sourcePath, onAdd, label = '+ Add', cardType, linkTy
 
 	const linkExisting = () => {
 		const types = linkTypes ?? (cardType ? [cardType] : []);
+		const items = linkItems ?? (types.length ? noteService.notesOfType(types, sourcePath) : undefined);
 		openNotePicker(
 			app,
 			(file) => onAdd(referenceService.toWikilink(file, sourcePath)),
-			types.length ? { items: noteService.notesOfType(types, sourcePath), cardType } : {},
+			{ items, cardType },
 		);
 	};
 

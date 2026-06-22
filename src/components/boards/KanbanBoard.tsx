@@ -1,7 +1,9 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { TFile } from 'obsidian';
-import { KanbanBoard as KanbanBoardType, KanbanColumn, RoadmapBoard } from '../../types/Board';
+import { CardSourceInfo, KanbanBoard as KanbanBoardType, KanbanColumn, Ref, RoadmapBoard } from '../../types/Board';
+import { CARD_TYPE } from '../../constants';
 import { KanbanColumn as KanbanColumnView } from '../kanban/KanbanColumn';
+import { AddPostIt } from '../common/AddPostIt';
 import { useApp, useServices } from '../../context/AppContext';
 
 interface KanbanBoardProps {
@@ -20,12 +22,11 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 	const app = useApp();
 	const { boardService, noteService, referenceService, indexService } = useServices();
 
-	// Re-render when any board changes so the displayed cards track edits to the source Roadmap.
+	// Re-render when any board changes so displayed cards track edits to source Roadmaps.
 	const [, force] = useReducer((x: number) => x + 1, 0);
 	useEffect(() => indexService.subscribe(force), [indexService]);
 
-	// Re-render when a relevant note changes (e.g. a story's `status` frontmatter,
-	// which determines its column). Filtered to the board, the Roadmap, and the cards.
+	// Re-render when a relevant note changes (story `status:`, estimate, roadmap content).
 	const relevantPaths = useRef<Set<string>>(new Set());
 	useEffect(() => {
 		const onChanged = (f: TFile) => { if (relevantPaths.current.has(f.path)) force(); };
@@ -39,26 +40,30 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 
 	const [cardDrag, setCardDrag] = useState<CardDrag | null>(null);
 
-	/* ===== source Roadmap (stories + release dates) ===== */
+	/* ===== Multi-roadmap loading ===== */
 	const roadmapBoards = indexService.getBoardsOfType('roadmap');
-	const roadmapFile = board.roadmap ? referenceService.resolve(board.roadmap, boardPath) : null;
 
-	const [roadmapBoard, setRoadmapBoard] = useState<RoadmapBoard | null>(null);
+	// Resolve all linked roadmap file references.
+	const roadmapFiles: (TFile | null)[] = board.roadmaps.map(
+		(ref) => referenceService.resolve(ref, boardPath),
+	);
+
+	const [parsedRoadmaps, setParsedRoadmaps] = useState<(RoadmapBoard | null)[]>([]);
 	useEffect(() => {
-		if (!roadmapFile) { setRoadmapBoard(null); return; }
-		boardService.parseBoardAsync(roadmapFile).then((b) =>
-			setRoadmapBoard(b?.boardType === 'roadmap' ? (b as RoadmapBoard) : null),
-		);
-	}, [roadmapFile?.path, boardService]);
+		let cancelled = false;
+		Promise.all(
+			roadmapFiles.map((f) =>
+				f ? boardService.parseBoardAsync(f).then((b) =>
+					b?.boardType === 'roadmap' ? (b as RoadmapBoard) : null,
+				) : Promise.resolve(null),
+			),
+		).then((results) => { if (!cancelled) setParsedRoadmaps(results); });
+		return () => { cancelled = true; };
+		// Re-run when the set of roadmap refs changes.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [boardService, board.roadmaps.join(','), roadmapFiles.map((f) => f?.path ?? '').join(',')]);
 
-	const roadmapValid = roadmapBoard?.boardType === 'roadmap';
-
-	const boardLabel = (f: TFile) => indexService.getBoardTitle(f.path) ?? f.basename;
-
-	const selectRoadmap = (path: string) => {
-		const f = roadmapBoards.find((b) => b.path === path);
-		onBoardUpdate({ roadmap: f ? referenceService.toWikilink(f, boardPath) : '' });
-	};
+	const boardLabel = (f: TFile) => indexService.getBoardTitle(f.path) || f.basename;
 
 	/** Stable identity for a reference (resolved note path, or its linkpath if missing). */
 	const keyOf = (ref: string, src: string) => {
@@ -66,33 +71,62 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 		return dest ? dest.path : referenceService.linkpath(ref);
 	};
 
-	/* ===== stories come from the Roadmap's release items (ordered, distinct) ===== */
+	/* ===== Aggregate stories from all roadmaps (ordered, deduped) ===== */
 	const roadmapStoryFiles: TFile[] = [];
-	const roadmapKeys = new Set<string>();
-	if (roadmapBoard && roadmapFile) {
+	const roadmapStoryPathSet = new Set<string>();
+	// sourceMap: file.path → CardSourceInfo
+	const sourceMap = new Map<string, CardSourceInfo>();
+
+	parsedRoadmaps.forEach((roadmapBoard, idx) => {
+		const roadmapFile = roadmapFiles[idx];
+		if (!roadmapBoard || !roadmapFile) return;
+		const roadmapRef = board.roadmaps[idx];
 		for (const release of roadmapBoard.releases) {
 			for (const item of release.items) {
 				const dest = referenceService.resolve(item, roadmapFile.path);
-				if (!dest || roadmapKeys.has(dest.path)) continue;
-				roadmapKeys.add(dest.path);
-				roadmapStoryFiles.push(dest);
+				if (!dest) continue;
+				if (!roadmapStoryPathSet.has(dest.path)) {
+					roadmapStoryPathSet.add(dest.path);
+					roadmapStoryFiles.push(dest);
+				}
+				// Track which roadmaps contain this story.
+				const existing = sourceMap.get(dest.path);
+				if (existing && existing.kind === 'roadmap') {
+					if (!existing.roadmapRefs.includes(roadmapRef)) {
+						existing.roadmapRefs.push(roadmapRef);
+					}
+				} else {
+					sourceMap.set(dest.path, { kind: 'roadmap', roadmapRefs: [roadmapRef] });
+				}
 			}
 		}
+	});
+
+	/* ===== Independent ticket reconciliation ===== */
+	const independentFiles: TFile[] = [];
+	for (const ref of board.independentTickets) {
+		const dest = referenceService.resolve(ref, boardPath);
+		if (dest && !roadmapStoryPathSet.has(dest.path)) {
+			// Not roadmap-sourced: classify as independent.
+			sourceMap.set(dest.path, { kind: 'independent' });
+			independentFiles.push(dest);
+		}
+		// If it's already roadmap-sourced, skip (roadmap takes precedence).
 	}
 
-	// Re-render this board when any of these notes change (status edits move cards).
+	// All displayable files (roadmap + independent), for column reconciliation.
+	const allDisplayFiles = [...roadmapStoryFiles, ...independentFiles];
+
+	// Update relevantPaths for selective re-renders.
 	relevantPaths.current = new Set([
 		boardPath,
-		...(roadmapFile ? [roadmapFile.path] : []),
-		...roadmapStoryFiles.map((f) => f.path),
+		...roadmapFiles.filter(Boolean).map((f) => f!.path),
+		...allDisplayFiles.map((f) => f.path),
 	]);
 
 	/**
-	 * Place each Roadmap story into a column. A story's column is the column whose
-	 * name matches its note's `status:` frontmatter (the source of truth); a story
-	 * with no/unknown status falls to the first column (Backlog). Within a column,
-	 * cards keep the order stored in the board layout, with any not-yet-ordered
-	 * stories appended in Roadmap order.
+	 * Place each file into a column. A story's column is the column whose
+	 * name matches its note's `status:` frontmatter; unknown status → first column.
 	 */
 	const firstColumnId = board.columns[0]?.id;
 	const columnIdByName = new Map(board.columns.map((c) => [c.name.toLowerCase(), c.id]));
@@ -114,7 +148,7 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 	}
 
 	const buckets = new Map<string, TFile[]>(board.columns.map((c) => [c.id, []]));
-	for (const file of roadmapStoryFiles) {
+	for (const file of allDisplayFiles) {
 		const id = columnIdFor(file) ?? firstColumnId;
 		if (id && buckets.has(id)) buckets.get(id)!.push(file);
 	}
@@ -128,12 +162,9 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 		return { ...c, cards: files.map((f) => referenceService.toWikilink(f, boardPath)) };
 	});
 
-	/* ===== card drag-and-drop (within and between columns) ===== */
+	/* ===== Card drag-and-drop ===== */
 	const cloneColumn = (c: KanbanColumn): KanbanColumn => ({ ...c, cards: [...c.cards] });
 
-	// Move the dragged card into targetColumnId at targetIndex (null = append):
-	// persist the order in the board layout and reflect the column in the story's
-	// `status` frontmatter (the source of truth for the card's column).
 	const moveCard = (targetColumnId: string, targetIndex: number | null) => {
 		const drag = cardDrag;
 		setCardDrag(null);
@@ -154,29 +185,95 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 		}
 	};
 
+	/* ===== Independent ticket management ===== */
+	const removeIndependentTicket = (ref: Ref) => {
+		onBoardUpdate({ independentTickets: board.independentTickets.filter((r) => r !== ref) });
+	};
+
+	const handleRemoveCard = (_columnId: string, ref: Ref) => {
+		removeIndependentTicket(ref);
+	};
+
+	/* ===== Roadmap management ===== */
+	const addRoadmap = (path: string) => {
+		const f = roadmapBoards.find((b) => b.path === path);
+		if (!f) return;
+		const ref = referenceService.toWikilink(f, boardPath);
+		if (!board.roadmaps.includes(ref)) {
+			onBoardUpdate({ roadmaps: [...board.roadmaps, ref] });
+		}
+	};
+
+	const removeRoadmap = (ref: Ref) => {
+		onBoardUpdate({ roadmaps: board.roadmaps.filter((r) => r !== ref) });
+	};
+
+	// Roadmap boards not yet linked (for the add-select).
+	const linkedRoadmapPaths = new Set(roadmapFiles.filter(Boolean).map((f) => f!.path));
+	const availableRoadmaps = roadmapBoards.filter((f) => !linkedRoadmapPaths.has(f.path));
+
+	const hasAnyContent = roadmapStoryFiles.length > 0 || independentFiles.length > 0;
+
 	return (
 		<div className="agile-kanban-board">
-			{/* Source Roadmap */}
+			{/* Linked Roadmaps list */}
 			<div className="agile-kanban-source">
-				<label className="agile-kanban-source__label">Source Roadmap</label>
-				<select
-					className="agile-field__input agile-kanban-source__select"
-					value={roadmapFile?.path ?? ''}
-					onChange={(e) => selectRoadmap(e.target.value)}
-				>
-					<option value="">— Select a Roadmap —</option>
-					{roadmapBoards.map((f) => (
-						<option key={f.path} value={f.path}>{boardLabel(f)}</option>
-					))}
-				</select>
-				{board.roadmap && !roadmapValid && (
-					<span className="agile-kanban-source__warn">Linked Roadmap not found.</span>
-				)}
+				<span className="agile-kanban-source__label">Linked Roadmaps</span>
+				<div className="agile-kanban-source__list">
+					{board.roadmaps.map((ref, idx) => {
+						const f = roadmapFiles[idx];
+						// Show warning only when the ref can't be resolved — not during async parse.
+						const missing = !f;
+						return (
+							<span key={ref} className="agile-kanban-source__item">
+								<span className="agile-kanban-source__item-name">
+									{f ? boardLabel(f) : referenceService.label(ref)}
+								</span>
+								{missing && (
+									<span className="agile-kanban-source__warn"> (not found)</span>
+								)}
+								<button
+									className="agile-kanban-source__remove agile-btn agile-btn--icon agile-btn--small"
+									title="Remove roadmap link"
+									onClick={() => removeRoadmap(ref)}
+								>
+									×
+								</button>
+							</span>
+						);
+					})}
+					{availableRoadmaps.length > 0 && (
+						<select
+							className="agile-field__input agile-kanban-source__add"
+							value=""
+							onChange={(e) => { if (e.target.value) addRoadmap(e.target.value); }}
+						>
+							<option value="">+ Add roadmap…</option>
+							{availableRoadmaps.map((f) => (
+								<option key={f.path} value={f.path}>{boardLabel(f)}</option>
+							))}
+						</select>
+					)}
+				</div>
+				<AddPostIt
+					sourcePath={boardPath}
+					cardType={CARD_TYPE.story}
+					label="Create"
+					linkItems={(() => {
+						const cardsFolder = noteService.getCardsFolder();
+						return app.vault.getMarkdownFiles().filter((f) =>
+							(f.parent?.name === CARD_TYPE.story && f.path.startsWith(cardsFolder + '/')) ||
+							noteService.getAgileType(f) === CARD_TYPE.story,
+						);
+					})()}
+					onAdd={(ref) => onBoardUpdate({ independentTickets: [...board.independentTickets, ref] })}
+				/>
 			</div>
 
-			{!roadmapValid && (
+			{/* Empty state */}
+			{!hasAnyContent && board.roadmaps.length === 0 && board.independentTickets.length === 0 && (
 				<div className="agile-empty-state">
-					<p>Select a source Roadmap above to display its stories on the board.</p>
+					<p>Add a roadmap or link a ticket to get started.</p>
 				</div>
 			)}
 
@@ -187,7 +284,8 @@ export const KanbanBoard = ({ board, boardPath, onBoardUpdate }: KanbanBoardProp
 						key={column.id}
 						column={column}
 						sourcePath={boardPath}
-						roadmapRef={board.roadmap}
+						sourceMap={sourceMap}
+						onRemoveCard={handleRemoveCard}
 						onCardDragStart={(columnId, index) => setCardDrag({ columnId, index })}
 						onCardDropOnCard={(columnId, index) => moveCard(columnId, index)}
 						onCardDropOnColumn={(columnId) => moveCard(columnId, null)}

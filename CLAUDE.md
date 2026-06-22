@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/002-kanban-board/plan.md`
+`specs/003-kanban-multi-roadmap/plan.md`
 <!-- SPECKIT END -->
 
 # Agile Boards
