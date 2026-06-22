@@ -57,6 +57,18 @@ export class BoardService {
 		return this.frontmatterToBoard(file.path, fm);
 	}
 
+	// Fallback for files not indexed by MetadataCache (e.g. .board extension).
+	async parseBoardAsync(file: TFile): Promise<AgileBoard | null> {
+		const cached = this.parseBoard(file);
+		if (cached) return cached;
+		const raw = await this.app.vault.cachedRead(file);
+		const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+		if (!m) return null;
+		const fm = parseYaml(m[1]) as FrontmatterRecord;
+		if (!fm || fm['agile-type'] !== 'board') return null;
+		return this.frontmatterToBoard(file.path, fm);
+	}
+
 	getAllBoards(): TFile[] {
 		return this.app.vault.getMarkdownFiles().filter((f) => {
 			const fm = this.app.metadataCache.getFileCache(f)?.frontmatter as FrontmatterRecord | undefined;

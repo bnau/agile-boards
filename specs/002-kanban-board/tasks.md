@@ -28,6 +28,7 @@ Single project; all paths are relative to the repository root (`src/...`), match
 **Purpose**: Pure constants every later phase reads. The project, build, and dependencies already exist (feature 001).
 
 - [X] T001 [P] Add Kanban constants to `src/constants.ts`: `VIEW_TYPE_KANBAN = 'agile-boards-kanban'`, `ESTIMATE_SCALE = [1,2,3,5,8,13,21]` (Fibonacci), and `DEADLINE_THRESHOLDS = { green: 30, yellow: 14, orange: 7 }` (days remaining)
+- [X] T028 [P] Register the `.board` file extension in `src/main.ts`: add `BoardDispatchView` (reads `state.file`, resolves board type via `BoardService`, redirects via `queueMicrotask` to the correct specific view); `registerView(VIEW_TYPE_BOARD_DISPATCH, …)` + `registerExtensions(['board'], VIEW_TYPE_BOARD_DISPATCH)` in `onload()`. (FR-020)
 
 ---
 

@@ -5,6 +5,9 @@ export const VIEW_TYPE_STORY = 'agile-boards-story';
 export const VIEW_TYPE_ROADMAP = 'agile-boards-roadmap';
 export const VIEW_TYPE_KANBAN = 'agile-boards-kanban';
 
+/** Generic dispatcher view type registered for the .board file extension. */
+export const VIEW_TYPE_BOARD_DISPATCH = 'agile-board';
+
 /** Fibonacci story-point scale offered for a Kanban card's estimate. */
 export const ESTIMATE_SCALE = [1, 2, 3, 5, 8, 13, 21] as const;
 

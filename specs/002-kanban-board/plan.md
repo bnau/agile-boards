@@ -70,7 +70,7 @@ New files are marked **(new)**; everything else is an edit to an existing file.
 
 ```text
 src/
-├── main.ts                          # + register VIEW_TYPE_KANBAN, + "Create Kanban Board" command, + VIEW_TYPE_MAP entry
+├── main.ts                          # + register VIEW_TYPE_KANBAN, + "Create Kanban Board" command, + VIEW_TYPE_MAP entry, + registerExtensions(['board'], …)
 ├── constants.ts                     # + VIEW_TYPE_KANBAN, + DEFAULT_KANBAN_COLUMNS, + deadline thresholds, + ESTIMATE_SCALE
 ├── types/
 │   └── Board.ts                     # + 'kanban' to BoardType, + KanbanColumn / KanbanBoard, + AgileBoard union member

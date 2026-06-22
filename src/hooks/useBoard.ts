@@ -31,9 +31,19 @@ export function useBoard(boardPath: string): {
 	const [boardFile, setBoardFile] = useState<TFile | null>(getBoardFile);
 
 	const refreshBoard = useCallback(() => {
-		setBoard(readBoard());
-		setBoardFile(getBoardFile());
-	}, [readBoard, getBoardFile]);
+		const b = readBoard();
+		if (b !== null) {
+			setBoard(b);
+			setBoardFile(getBoardFile());
+		} else {
+			// MetadataCache misses non-.md files (e.g. .board); read raw content.
+			const file = getBoardFile();
+			if (file) boardService.parseBoardAsync(file).then((parsed) => {
+				setBoard(parsed);
+				setBoardFile(getBoardFile());
+			});
+		}
+	}, [readBoard, getBoardFile, boardService]);
 
 	useEffect(() => {
 		refreshBoard();

@@ -1,6 +1,7 @@
-import { Plugin, TFile, PluginSettingTab, Setting, App, MarkdownView } from 'obsidian';
+import { Plugin, TFile, ItemView, WorkspaceLeaf, ViewStateResult, PluginSettingTab, Setting, App, MarkdownView } from 'obsidian';
 import {
 	VIEW_TYPE_VPC, VIEW_TYPE_LEAN, VIEW_TYPE_IMPACT, VIEW_TYPE_STORY, VIEW_TYPE_ROADMAP, VIEW_TYPE_KANBAN,
+	VIEW_TYPE_BOARD_DISPATCH,
 	DEFAULT_CARDS_FOLDER,
 } from './constants';
 import { PluginServices } from './context/AppContext';
@@ -50,8 +51,11 @@ export default class AgileBoardsPlugin extends Plugin {
 		this.registerView(VIEW_TYPE_STORY, (leaf) => new StoryMapView(leaf, this.services));
 		this.registerView(VIEW_TYPE_ROADMAP, (leaf) => new RoadmapView(leaf, this.services));
 		this.registerView(VIEW_TYPE_KANBAN, (leaf) => new KanbanView(leaf, this.services));
-
-		this.addRibbonIcon('layout-grid', 'Open agile board', () => this.openBoardPicker());
+		// Thin dispatcher: reads board-type from frontmatter and immediately
+		// redirects to the right specific view. Using ItemView (not FileView)
+		// avoids Obsidian auto-generating an "Open as Agile Board" header button.
+		this.registerView(VIEW_TYPE_BOARD_DISPATCH, (leaf) => new BoardDispatchView(leaf, this.services.boardService));
+		this.registerExtensions(['board'], VIEW_TYPE_BOARD_DISPATCH);
 
 		this.addCommand({ id: 'create-value-proposition-canvas', name: 'Create Value Proposition Canvas', callback: () => this.createAndOpenBoard('value-proposition-canvas', 'Value Proposition Canvas') });
 		this.addCommand({ id: 'create-lean-canvas', name: 'Create Lean Canvas', callback: () => this.createAndOpenBoard('lean-canvas', 'Lean Canvas') });
@@ -66,7 +70,7 @@ export default class AgileBoardsPlugin extends Plugin {
 			name: 'Open current note as agile board',
 			checkCallback: (checking) => {
 				const file = this.app.workspace.getActiveFile();
-				if (!file || !this.services.boardService.parseBoard(file)) return false;
+				if (!file || !this.isBoardFile(file)) return false;
 				if (!checking) this.openBoardFile(file, true);
 				return true;
 			},
@@ -74,7 +78,7 @@ export default class AgileBoardsPlugin extends Plugin {
 
 		// Right-click a board note (file explorer or note menu) → Open as agile board.
 		this.registerEvent(this.app.workspace.on('file-menu', (menu, file) => {
-			if (!(file instanceof TFile) || !this.services.boardService.parseBoard(file)) return;
+			if (!(file instanceof TFile) || !this.isBoardFile(file)) return;
 			menu.addItem((item) =>
 				item
 					.setTitle('Open as agile board')
@@ -107,6 +111,11 @@ export default class AgileBoardsPlugin extends Plugin {
 		this.services?.noteService.setCardsFolder(this.settings.cardsFolder);
 	}
 
+	// Returns true for both .md board notes (MetadataCache) and .board files (extension).
+	private isBoardFile(file: TFile): boolean {
+		return !!this.services.boardService.parseBoard(file) || file.extension === 'board';
+	}
+
 	private async createAndOpenBoard(type: BoardType, defaultTitle: string): Promise<void> {
 		const activeFile = this.app.workspace.getActiveFile();
 		const folder = activeFile?.parent?.path ?? undefined;
@@ -120,7 +129,7 @@ export default class AgileBoardsPlugin extends Plugin {
 		for (const leaf of this.app.workspace.getLeavesOfType('markdown')) {
 			const view = leaf.view;
 			if (!(view instanceof MarkdownView)) continue;
-			const isBoard = !!view.file && !!this.services.boardService.parseBoard(view.file);
+			const isBoard = !!view.file && this.isBoardFile(view.file);
 			const existing = view.containerEl.querySelector('.' + BOARD_ACTION_CLASS);
 			if (isBoard && !existing) {
 				const el = view.addAction('layout-grid', 'Open as agile board', () => {
@@ -134,7 +143,9 @@ export default class AgileBoardsPlugin extends Plugin {
 	}
 
 	async openBoardFile(file: TFile, inPlace = false): Promise<void> {
-		const board = this.services.boardService.parseBoard(file);
+		// Try fast sync path first (works for .md), fall back to async for .board.
+		let board = this.services.boardService.parseBoard(file);
+		if (!board) board = await this.services.boardService.parseBoardAsync(file);
 		if (!board) return;
 		const viewType = VIEW_TYPE_MAP[board.boardType];
 		if (!viewType) return;
@@ -153,6 +164,41 @@ export default class AgileBoardsPlugin extends Plugin {
 		}
 		const sorted = [...boards].sort((a, b) => b.stat.mtime - a.stat.mtime);
 		this.openBoardFile(sorted[0]);
+	}
+}
+
+// Opened when Obsidian resolves a .board file via registerExtensions.
+// Uses ItemView (not FileView) so Obsidian does not auto-generate an
+// "Open as Agile Board" header button. setState receives { file: path }
+// from Obsidian, reads board-type via parseBoardAsync (raw content fallback
+// for files not indexed by MetadataCache), then redirects to the right view.
+class BoardDispatchView extends ItemView {
+	constructor(leaf: WorkspaceLeaf, private boardService: BoardService) {
+		super(leaf);
+	}
+
+	getViewType(): string { return VIEW_TYPE_BOARD_DISPATCH; }
+	getDisplayText(): string { return 'Agile Board'; }
+	getIcon(): string { return 'layout-grid'; }
+
+	async onOpen(): Promise<void> {}
+	async onClose(): Promise<void> {}
+
+	async setState(state: Record<string, unknown>, result: ViewStateResult): Promise<void> {
+		await super.setState(state, result);
+		const filePath = typeof state.file === 'string' ? state.file : undefined;
+		if (!filePath) return;
+		const file = this.app.vault.getAbstractFileByPath(filePath);
+		if (!(file instanceof TFile)) return;
+
+		const board = await this.boardService.parseBoardAsync(file);
+		if (!board) return;
+		const viewType = VIEW_TYPE_MAP[board.boardType];
+		if (!viewType) return;
+		// Defer to let the current setState call complete before switching view type.
+		setTimeout(() => {
+			this.leaf.setViewState({ type: viewType, state: { boardPath: filePath }, active: true });
+		}, 0);
 	}
 }
 

@@ -92,6 +92,7 @@ As a product owner, I want each card to show its estimate, each column to show i
 - **FR-017**: System MUST display a "missing note" indicator for an unresolved story reference, and MUST display a "Roadmap not found" indicator when the linked Roadmap is unresolved (rendering the columns empty until re-linked).
 - **FR-018**: System MUST follow Obsidian rename/move events so that references to story notes and to the source Roadmap remain valid.
 - **FR-019**: Board layout (per-column card placement and order, and the source Roadmap link) MUST persist across sessions by virtue of being stored in the board note's frontmatter and MUST be fully restored on reload.
+- **FR-020**: System MUST register the `.board` file extension with Obsidian so that vault notes with that extension open in the Agile Board view by default, without requiring the user to manually select the view; the registration MUST be cleaned up automatically when the plugin unloads.
 
 ### Key Entities *(include if feature involves data)*
 
